@@ -118,11 +118,8 @@ public class Main {
         );
         
         String username = connection.fetchString("select username from users where id = ?", 1);
-        Date lastActive = connection.fetchDate("select last_active from users where id = ?", 1);
-        Integer integerId = connection.fetchInteger("select id from users where username = ?", "admin");
-        Long LongId = connection.fetchLong("select id from users where username = ?", "admin");
-        
-        // Etc
+
+        System.out.println("Username: " + username);
     }
 }
 ```
