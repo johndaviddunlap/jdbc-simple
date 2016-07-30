@@ -28,7 +28,15 @@ _You will need to have the JDBC HSQLDB driver(only necessary for demonstration p
 ```
 _Dependency coordinates for other build systems can be found [here](http://search.maven.org/#artifactdetails%7Chsqldb%7Chsqldb%7C1.8.0.10%7Cjar)_
 
-##Query returns nothing
+## Query returns nothing
+### What you need to know
+```java
+public abstract class Connection {
+    public boolean execute(final String sql, final Object... arguments) throws SQLException;
+}
+```
+
+### Complete working example
 ```java
 import java.sql.SQLException;
 
@@ -67,6 +75,22 @@ public class Main {
 ```
 
 ## Query returns a single row with a single column
+### What you need to know
+```java
+public abstract class Connection {
+    public String fetchString(final String sql, final Object ... args) throws SQLException;
+    public Integer fetchInteger(final String sql, final Object ... args) throws SQLException;
+    public Long fetchLong(final String sql, final Object ... args) throws SQLException;
+    public Float fetchFloat(final String sql, final Object ... args) throws SQLException;
+    public Double fetchDouble(final String sql, final Object ... args) throws SQLException;
+    public BigDecimal fetchBigDecimal(final String sql, final Object ... args) throws SQLException;
+    public Date fetchDate(final String sql, final Object ... args) throws SQLException;
+    public Boolean fetchBoolean(final String sql, final Object ... args) throws SQLException;
+    public Object fetchObject(final String sql, final Object ... args) throws SQLException;
+}
+```
+
+### Complete working example
 ```java
 import java.sql.SQLException;
 import java.util.Date;
