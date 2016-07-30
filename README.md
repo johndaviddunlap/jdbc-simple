@@ -132,7 +132,7 @@ public class Main {
 ```java
 public abstract class Connection {
     public <T> T fetchEntity(final T entity, final String sql, final Object ... arguments) throws SQLException;
-    public <T> T fetchEntity(final Class<T> clazz, final String sql, final Object ... arguments) throws SQLException
+    public <T> T fetchEntity(final Class<T> clazz, final String sql, final Object ... arguments) throws SQLException;
     public Map<String, Object> fetchMap(final String sql, final Object ... arguments) throws SQLException;
 }
 ```
