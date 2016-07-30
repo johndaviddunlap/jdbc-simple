@@ -172,6 +172,20 @@ public class Main {
             1
         );
 
+        // Update the password
+        connection.execute(
+            "update users set password = ? where username = ?",
+            "password2",
+            "admin"
+        );
+        
+        // Refresh the password property in the object
+        connection.fetchEntity(
+            user,
+            "select password from users where id = ?",
+            1
+        );
+
         // Fetch the results as a map of objects keyed by column name
         Map<String, Object> user = connection.fetchMap(
             "select id, username, password, active, last_active, balance from users where id = ?",
