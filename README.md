@@ -95,6 +95,8 @@ public class Main {
         
         String username = connection.fetchString("select username from users where id = ?", 1);
         Date lastActive = connection.fetchDate("select last_active from users where id = ?", 1);
+        Integer integerId = connection.fetchInteger("select id from users where username = ?", "admin");
+        Long LongId = connection.fetchLong("select id from users where username = ?", "admin");
         
         // Etc
     }
@@ -102,4 +104,101 @@ public class Main {
 ```
 
 ## Query returns a single row with multiple columns
+```java
+import java.sql.SQLException;
+import java.util.Date;
+
+public class Main {
+    public static void main(String[] args) throws SQLException {
+        Connection connection = DB.getConnection("jdbc:hsqldb:mem:test", "sa", "");
+        connection.execute("create table users(\n" +
+            "            id INTEGER not null,\n" +
+            "            username char(25),\n" +
+            "            password char(25),\n" +
+            "            active BOOLEAN,\n" +
+            "            last_active TIMESTAMP,\n" +
+            "            PRIMARY KEY (id)\n" +
+            "        );"
+        );
+
+        // Add some data
+        connection.execute(
+            "insert into users(id, username, password, active, last_active) values(?,?,?,?,?)",
+            1,
+            "admin",
+            "password",
+            true,
+            "1970-01-01 00:00:00"
+        );
+
+        User user = connection.fetchEntity(
+            User.class,
+            "select id, username, password, active, last_active from users where id = ?",
+            1
+        );
+
+        System.out.println(user);
+    }
+
+    public static class User {
+        private Long id;
+        private String username;
+        private String password;
+        private Boolean active;
+        private Date lastActive;
+
+        public Long getId() {
+            return id;
+        }
+
+        public void setId(Long id) {
+            this.id = id;
+        }
+
+        public String getUsername() {
+            return username;
+        }
+
+        public void setUsername(String username) {
+            this.username = username;
+        }
+
+        public String getPassword() {
+            return password;
+        }
+
+        public void setPassword(String password) {
+            this.password = password;
+        }
+
+        public Boolean getActive() {
+            return active;
+        }
+
+        public void setActive(Boolean active) {
+            this.active = active;
+        }
+
+        public Date getLastActive() {
+            return lastActive;
+        }
+
+        public void setLastActive(Date lastActive) {
+            this.lastActive = lastActive;
+        }
+
+        @Override
+        public String toString() {
+            return "User{" +
+                "id=" + id +
+                ", username='" + username + '\'' +
+                ", password='" + password + '\'' +
+                ", active=" + active +
+                ", lastActive=" + lastActive +
+                '}';
+        }
+    }
+}
+```
+
 ## Query returns multiple rows with one or more columns
