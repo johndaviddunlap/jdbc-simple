@@ -16,3 +16,38 @@ These are the core use cases which are handled by jdbc-simple.
 * Binds query results to Java objects
 
 # Examples
+For complete working examples, look at the unit tests.
+
+Query returns nothing:
+```java
+import java.sql.SQLException;
+
+public class Main {
+    public static void main(String[] args) throws SQLException {
+        Connection connection = DB.getConnection("jdbc:hsqldb:mem:test", "sa", "");
+        connection.execute("create table users(\n" +
+            "            id INTEGER not null,\n" +
+            "            username char(25),\n" +
+            "            password char(25),\n" +
+            "            active BOOLEAN,\n" +
+            "            last_active TIMESTAMP,\n" +
+            "            PRIMARY KEY (id)\n" +
+            "        );"
+        );
+
+        // Add some data
+        connection.execute(
+            "insert into users(id, username, password, active, last_active) values(?,?,?,?,?)",
+            1,
+            "admin",
+            "password",
+            true,
+            "1970-01-01 00:00:00"
+        );
+    }
+}
+```
+
+* Query returns a single row with a single column
+* Query returns a single row with multiple columns
+* Query returns multiple rows with one or more columns
