@@ -26,8 +26,6 @@ package co.lariat.jdbc;
  * #L%
  */
 
-import co.lariat.jdbc.exception.UnsupportedColumnNameException;
-
 import javax.persistence.Entity;
 import javax.sql.DataSource;
 import java.lang.reflect.InvocationTargetException;
@@ -36,6 +34,7 @@ import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.sql.Savepoint;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Date;
@@ -62,44 +61,33 @@ public abstract class Connection {
         this.connection = connection;
     }
 
-    protected java.sql.Connection getConnection() {
-        try {
-            if (dataSource != null) {
-                return dataSource.getConnection();
-            } else {
-                return connection;
-            }
+    public java.sql.Connection getConnection() throws SQLException {
+        // Attempt to get a connection from the data source, if we
+        // don't have one already
+        if (connection == null) {
+            connection = dataSource.getConnection();
         }
 
-        // Re-throw as a runtime exception
-        catch (SQLException e) {
-            throw new co.lariat.jdbc.exception.SQLException(e);
-        }
+        // Return the connection
+        return connection;
     }
 
-    protected PreparedStatement getPreparedStatement(final String sql) {
-        try {
-            // Return the cached prepared statement, if available
-            if (preparedStatementCache.containsKey(sql)) {
-                return preparedStatementCache.get(sql);
-            }
-
-            // Create a prepared statement
-            preparedStatementCache.put(sql, getConnection().prepareStatement(sql));
-
-            // Return the prepared statement
+    protected PreparedStatement getPreparedStatement(final String sql) throws SQLException {
+        // Return the cached prepared statement, if available
+        if (preparedStatementCache.containsKey(sql)) {
             return preparedStatementCache.get(sql);
         }
 
-        // Re-throw as a runtime exception
-        catch (SQLException e) {
-            throw new co.lariat.jdbc.exception.SQLException(e);
-        }
+        // Create a prepared statement
+        preparedStatementCache.put(sql, getConnection().prepareStatement(sql));
+
+        // Return the prepared statement
+        return preparedStatementCache.get(sql);
     }
 
-    protected abstract ResultSet fetch(final PreparedStatement statement);
+    protected abstract ResultSet fetch(final PreparedStatement statement) throws SQLException;
 
-    public ResultSet fetch(final String sql, final Object... arguments) {
+    public ResultSet fetch(final String sql, final Object... arguments) throws SQLException {
         // Attempt to construct a prepared statement
         PreparedStatement statement = getPreparedStatement(sql);
 
@@ -110,15 +98,11 @@ public abstract class Connection {
         return fetch(statement);
     }
 
-    public boolean execute(final PreparedStatement statement) {
-        try {
-            return statement.execute();
-        } catch (SQLException e) {
-            throw new co.lariat.jdbc.exception.SQLException(e);
-        }
+    public boolean execute(final PreparedStatement statement) throws SQLException {
+        return statement.execute();
     }
 
-    public boolean execute(final String sql, final Object... arguments) {
+    public boolean execute(final String sql, final Object... arguments) throws SQLException {
         // Attempt to construct a prepared statement
         PreparedStatement statement = getPreparedStatement(sql);
 
@@ -130,7 +114,7 @@ public abstract class Connection {
     }
 
     @SuppressWarnings("unchecked")
-    public <T> List<T> fetchAllEntity(final Class<T> clazz, final String sql, final Object... arguments) {
+    public <T> List<T> fetchAllEntity(final Class<T> clazz, final String sql, final Object... arguments) throws SQLException {
         // Attempt to construct a prepared statement
         PreparedStatement statement = getPreparedStatement(sql);
 
@@ -152,44 +136,39 @@ public abstract class Connection {
     }
 
     @SuppressWarnings("unchecked")
-    public <T> Map<String, T> fetchAllEntityMap(final Class<T> clazz, final String columnLabel, final String sql, final Object... arguments) {
-        try {
-            // Attempt to construct a prepared statement
-            PreparedStatement statement = getPreparedStatement(sql);
+    public <T> Map<String, T> fetchAllEntityMap(final Class<T> clazz, final String columnLabel, final String sql, final Object... arguments) throws SQLException {
+        // Attempt to construct a prepared statement
+        PreparedStatement statement = getPreparedStatement(sql);
 
-            // Attempt to bind the arguments to the query
-            bindArguments(statement, arguments);
+        // Attempt to bind the arguments to the query
+        bindArguments(statement, arguments);
 
-            // Run the query
-            ResultSet resultSet = fetch(statement);
+        // Run the query
+        ResultSet resultSet = fetch(statement);
 
-            Map<String, T> entities = new HashMap<String, T>();
+        Map<String, T> entities = new HashMap<String, T>();
 
-            // Iterate over the results
-            for (Record record : resultSet) {
-                entities.put(record.getStringByName(columnLabel), fetchEntity(clazz, record));
-            }
-
-            // Not technically type safe but necessary to create the illusion of it
-            return entities;
-        } catch (SQLException e) {
-            throw new co.lariat.jdbc.exception.SQLException(e);
+        // Iterate over the results
+        for (Record record : resultSet) {
+            entities.put(record.getStringByName(columnLabel), fetchEntity(clazz, record));
         }
 
+        // Not technically type safe but necessary to create the illusion of it
+        return entities;
     }
 
-    protected <T> T fetchEntity(final Class<T> clazz, final Record record) {
+    protected <T> T fetchEntity(final Class<T> clazz, final Record record) throws SQLException {
         try {
             T entity = clazz.newInstance();
             return fetchEntity(entity, record);
         } catch (InstantiationException e) {
-            throw new co.lariat.jdbc.exception.SQLException(e);
+            throw new SQLException("Cannot instantiate entity: " + clazz.getCanonicalName(), e);
         } catch (IllegalAccessException e) {
-            throw new co.lariat.jdbc.exception.SQLException(e);
+            throw new SQLException("Cannot access constructor of entity: " + clazz.getCanonicalName(), e);
         }
     }
 
-    protected <T> T fetchEntity(final T entity, final Record record) {
+    protected <T> T fetchEntity(final T entity, final Record record) throws SQLException {
         try {
             int columnCount = record.getColumnCount();
 
@@ -216,21 +195,21 @@ public abstract class Connection {
             }
 
             return (T) entity;
-        } catch (ClassNotFoundException e) {
-            throw new co.lariat.jdbc.exception.SQLException(e);
-        } catch (NoSuchMethodException e) {
-            throw new co.lariat.jdbc.exception.SQLException(e);
-        } catch (IllegalAccessException e) {
-            throw new co.lariat.jdbc.exception.SQLException(e);
-        } catch (SQLException e) {
-            throw new co.lariat.jdbc.exception.SQLException(e);
         } catch (InvocationTargetException e) {
-            throw new co.lariat.jdbc.exception.SQLException(e);
+            throw new SQLException("Cannot invoke setter", e);
+        } catch (NoSuchMethodException e) {
+            throw new SQLException("Cannot invoke setter", e);
+        } catch (SQLException e) {
+            throw new SQLException("Cannot invoke setter", e);
+        } catch (IllegalAccessException e) {
+            throw new SQLException("Cannot invoke setter", e);
+        } catch (ClassNotFoundException e) {
+            throw new SQLException("Cannot invoke setter", e);
         }
     }
 
     @SuppressWarnings("unchecked")
-    public List<Map<String, Object>> fetchAllMap(final String sql, final Object ... arguments) {
+    public List<Map<String, Object>> fetchAllMap(final String sql, final Object ... arguments) throws SQLException {
         // Attempt to construct a prepared statement
         PreparedStatement statement = getPreparedStatement(sql);
 
@@ -251,7 +230,7 @@ public abstract class Connection {
         return entities;
     }
 
-    public <T> T fetchEntity(final T entity, final String sql, final Object ... arguments) {
+    public <T> T fetchEntity(final T entity, final String sql, final Object ... arguments) throws SQLException {
         // Attempt to construct a prepared statement
         PreparedStatement statement = getPreparedStatement(sql);
 
@@ -266,7 +245,7 @@ public abstract class Connection {
         // Iterate over the results
         for (Record record : resultSet) {
             if (count > 0) {
-                throw new co.lariat.jdbc.exception.SQLException("Encountered a second record where a single record was expected");
+                throw new SQLException("Encountered a second record where a single record was expected");
             }
 
             // Populate the entity
@@ -278,19 +257,19 @@ public abstract class Connection {
         return entity;
     }
 
-    public <T> T fetchEntity(final Class<T> clazz, final String sql, final Object ... arguments) {
+    public <T> T fetchEntity(final Class<T> clazz, final String sql, final Object ... arguments) throws SQLException {
         try {
             T entity = clazz.newInstance();
             return fetchEntity(entity, sql, arguments);
         } catch (InstantiationException e) {
-            throw new co.lariat.jdbc.exception.SQLException(e);
+            throw new SQLException("Cannot instantiate entity: " + clazz.getCanonicalName(), e);
         } catch (IllegalAccessException e) {
-            throw new co.lariat.jdbc.exception.SQLException(e);
+            throw new SQLException("Cannot access constructor of entity: " + clazz.getCanonicalName(), e);
         }
     }
 
     @SuppressWarnings("unchecked")
-    public Map<String, Object> fetchMap(final String sql, final Object ... arguments) {
+    public Map<String, Object> fetchMap(final String sql, final Object ... arguments) throws SQLException {
         // Attempt to construct a prepared statement
         PreparedStatement statement = getPreparedStatement(sql);
 
@@ -307,7 +286,7 @@ public abstract class Connection {
         // Iterate over the results
         for (Record record : resultSet) {
             if (count > 0) {
-                throw new co.lariat.jdbc.exception.SQLException("Encountered a second record where a single record was expected");
+                throw new SQLException("Encountered a second record where a single record was expected");
             }
 
             entity = fetchMap(record);
@@ -318,108 +297,68 @@ public abstract class Connection {
         return entity;
     }
 
-    protected Map<String, Object> fetchMap(final Record record) {
-        try {
-            Map<String, Object> entity = new HashMap<String, Object>();
+    protected Map<String, Object> fetchMap(final Record record) throws SQLException {
+        Map<String, Object> entity = new HashMap<String, Object>();
 
-            int columnCount = record.getColumnCount();
+        int columnCount = record.getColumnCount();
 
-            for (int index = 1; index <= columnCount; index++) {
-                String columnName = record.getColumnName(index).toLowerCase();
-                Object value = record.getValue(index);
-                entity.put(columnName, value);
-            }
-
-            return entity;
-        } catch(SQLException e) {
-            throw new co.lariat.jdbc.exception.SQLException(e);
+        for (int index = 1; index <= columnCount; index++) {
+            String columnName = record.getColumnName(index).toLowerCase();
+            Object value = record.getValue(index);
+            entity.put(columnName, value);
         }
+
+        return entity;
     }
 
-    protected java.sql.ResultSet fetchField(final String sql, final Object ... args) {
-        try {
-            // Construct a prepared statement
-            PreparedStatement statement = getConnection().prepareStatement(sql);
+    protected java.sql.ResultSet fetchField(final String sql, final Object ... args) throws SQLException {
+        // Construct a prepared statement
+        PreparedStatement statement = getConnection().prepareStatement(sql);
 
-            // Bind the arguments to the query
-            bindArguments(statement, args);
+        // Bind the arguments to the query
+        bindArguments(statement, args);
 
-            // Run the query
-            java.sql.ResultSet resultSet = statement.executeQuery();
-            resultSet.next();
+        // Run the query
+        java.sql.ResultSet resultSet = statement.executeQuery();
+        resultSet.next();
 
-            // Return the first column of the first row
-            return resultSet;
-        } catch (SQLException e) {
-            throw new co.lariat.jdbc.exception.SQLException(e);
-        }
+        // Return the first column of the first row
+        return resultSet;
     }
 
-    public String fetchString(final String sql, final Object ... args) {
-        try {
-            return fetchField(sql, args).getString(1);
-        } catch (SQLException e) {
-            throw new co.lariat.jdbc.exception.SQLException(e);
-        }
+    public String fetchString(final String sql, final Object ... args) throws SQLException {
+        return fetchField(sql, args).getString(1);
     }
 
-    public Integer fetchInteger(final String sql, final Object ... args) {
-        try {
-            return fetchField(sql, args).getInt(1);
-        } catch (SQLException e) {
-            throw new co.lariat.jdbc.exception.SQLException(e);
-        }
+    public Integer fetchInteger(final String sql, final Object ... args) throws SQLException {
+        return fetchField(sql, args).getInt(1);
     }
 
-    public Long fetchLong(final String sql, final Object ... args) {
-        try {
-            return fetchField(sql, args).getLong(1);
-        } catch (SQLException e) {
-            throw new co.lariat.jdbc.exception.SQLException(e);
-        }
+    public Long fetchLong(final String sql, final Object ... args) throws SQLException {
+        return fetchField(sql, args).getLong(1);
     }
 
-    public Float fetchFloat(final String sql, final Object ... args) {
-        try {
-            return fetchField(sql, args).getFloat(1);
-        } catch (SQLException e) {
-            throw new co.lariat.jdbc.exception.SQLException(e);
-        }
+    public Float fetchFloat(final String sql, final Object ... args) throws SQLException {
+        return fetchField(sql, args).getFloat(1);
     }
 
-    public Double fetchDouble(final String sql, final Object ... args) {
-        try {
-            return fetchField(sql, args).getDouble(1);
-        } catch (SQLException e) {
-            throw new co.lariat.jdbc.exception.SQLException(e);
-        }
+    public Double fetchDouble(final String sql, final Object ... args) throws SQLException {
+        return fetchField(sql, args).getDouble(1);
     }
 
-    public BigDecimal fetchBigDecimal(final String sql, final Object ... args) {
-        try {
-            return fetchField(sql, args).getBigDecimal(1);
-        } catch (SQLException e) {
-            throw new co.lariat.jdbc.exception.SQLException(e);
-        }
+    public BigDecimal fetchBigDecimal(final String sql, final Object ... args) throws SQLException {
+        return fetchField(sql, args).getBigDecimal(1);
     }
 
-    public Date fetchDate(final String sql, final Object ... args) {
-        try {
-            return new Date(fetchField(sql, args).getTimestamp(1).getTime());
-        } catch (SQLException e) {
-            throw new co.lariat.jdbc.exception.SQLException(e);
-        }
+    public Date fetchDate(final String sql, final Object ... args) throws SQLException {
+        return new Date(fetchField(sql, args).getTimestamp(1).getTime());
     }
 
-    public Boolean fetchBoolean(final String sql, final Object ... args) {
-        try {
-            return fetchField(sql, args).getBoolean(1);
-        } catch (SQLException e) {
-            throw new co.lariat.jdbc.exception.SQLException(e);
-        }
+    public Boolean fetchBoolean(final String sql, final Object ... args) throws SQLException {
+        return fetchField(sql, args).getBoolean(1);
     }
 
-    protected void bindArguments(final PreparedStatement statement, final Object ... args) {
+    protected void bindArguments(final PreparedStatement statement, final Object ... args) throws SQLException {
         int index = 1;
 
         // Iterate through the arguments
@@ -430,132 +369,96 @@ public abstract class Connection {
         }
     }
 
-    protected void bindArgument(final PreparedStatement statement, final Object argument, final int index) {
-        try {
-            if (argument == null) {
-                statement.setNull(index, Types.NULL);
-            } else if (argument instanceof String) {
-                bindString(statement, index, (String) argument);
-            } else if (argument instanceof Integer) {
-                bindInteger(statement, index, (Integer) argument);
-            } else if (argument instanceof Long) {
-                bindLong(statement, index, (Long) argument);
-            } else if (argument instanceof Float) {
-                bindFloat(statement, index, (Float) argument);
-            } else if (argument instanceof Double) {
-                bindDouble(statement, index, (Double) argument);
-            } else if (argument instanceof Boolean) {
-                bindBoolean(statement, index, (Boolean) argument);
-            } else if (argument instanceof Date) {
-                bindDate(statement, index, (Date) argument);
-            } else if (argument instanceof BigDecimal) {
-                bindBigDecimal(statement, index, (BigDecimal) argument);
-            } else {
-                throw new IllegalArgumentException("Query arguments of type " + argument.getClass().toString() + " are not supported");
-            }
-        } catch (SQLException e) {
-            throw new co.lariat.jdbc.exception.SQLException(e);
+    protected void bindArgument(final PreparedStatement statement, final Object argument, final int index) throws SQLException {
+        if (argument == null) {
+            statement.setNull(index, Types.NULL);
+        } else if (argument instanceof String) {
+            bindString(statement, index, (String) argument);
+        } else if (argument instanceof Integer) {
+            bindInteger(statement, index, (Integer) argument);
+        } else if (argument instanceof Long) {
+            bindLong(statement, index, (Long) argument);
+        } else if (argument instanceof Float) {
+            bindFloat(statement, index, (Float) argument);
+        } else if (argument instanceof Double) {
+            bindDouble(statement, index, (Double) argument);
+        } else if (argument instanceof Boolean) {
+            bindBoolean(statement, index, (Boolean) argument);
+        } else if (argument instanceof Date) {
+            bindDate(statement, index, (Date) argument);
+        } else if (argument instanceof BigDecimal) {
+            bindBigDecimal(statement, index, (BigDecimal) argument);
+        } else {
+            throw new SQLException("Query arguments of type " + argument.getClass().toString() + " are not supported");
         }
     }
 
-    protected void bindString(final PreparedStatement statement, final int position, final String value) {
-        try {
-            if (value != null) {
-                statement.setString(position, value);
-            } else {
-                statement.setNull(position, Types.NULL);
-            }
-        } catch (SQLException e) {
-            throw new co.lariat.jdbc.exception.SQLException(e);
+    protected void bindString(final PreparedStatement statement, final int position, final String value) throws SQLException {
+        if (value != null) {
+            statement.setString(position, value);
+        } else {
+            statement.setNull(position, Types.NULL);
         }
     }
 
-    protected void bindFloat(final PreparedStatement statement, final int position, final Float value) {
-        try {
-            if (value != null) {
-                statement.setFloat(position, value);
-            } else {
-                statement.setNull(position, Types.NULL);
-            }
-        } catch (SQLException e) {
-            throw new co.lariat.jdbc.exception.SQLException(e);
+    protected void bindFloat(final PreparedStatement statement, final int position, final Float value) throws SQLException {
+        if (value != null) {
+            statement.setFloat(position, value);
+        } else {
+            statement.setNull(position, Types.NULL);
         }
     }
 
-    protected void bindDouble(final PreparedStatement statement, final int position, final Double value) {
-        try {
-            if (value != null) {
-                statement.setDouble(position, value);
-            } else {
-                statement.setNull(position, Types.NULL);
-            }
-        } catch (SQLException e) {
-            throw new co.lariat.jdbc.exception.SQLException(e);
+    protected void bindDouble(final PreparedStatement statement, final int position, final Double value) throws SQLException {
+        if (value != null) {
+            statement.setDouble(position, value);
+        } else {
+            statement.setNull(position, Types.NULL);
         }
     }
 
-    protected void bindBigDecimal(final PreparedStatement statement, final int position, final BigDecimal value) {
-        try {
-            if (value != null) {
-                statement.setBigDecimal(position, value);
-            } else {
-                statement.setNull(position, Types.NULL);
-            }
-        } catch (SQLException e) {
-            throw new co.lariat.jdbc.exception.SQLException(e);
+    protected void bindBigDecimal(final PreparedStatement statement, final int position, final BigDecimal value) throws SQLException {
+        if (value != null) {
+            statement.setBigDecimal(position, value);
+        } else {
+            statement.setNull(position, Types.NULL);
         }
     }
 
-    protected void bindInteger(final PreparedStatement statement, final int position, final Integer value) {
-        try {
-            if (value != null) {
-                statement.setInt(position, value);
-            } else {
-                statement.setNull(position, Types.NULL);
-            }
-        } catch (SQLException e) {
-            throw new co.lariat.jdbc.exception.SQLException(e);
+    protected void bindInteger(final PreparedStatement statement, final int position, final Integer value) throws SQLException {
+        if (value != null) {
+            statement.setInt(position, value);
+        } else {
+            statement.setNull(position, Types.NULL);
         }
     }
 
-    protected void bindLong(final PreparedStatement statement, final int position, final Long value) {
-        try {
-            if (value != null) {
-                statement.setLong(position, value);
-            } else {
-                statement.setNull(position, Types.NULL);
-            }
-        } catch (SQLException e) {
-            throw new co.lariat.jdbc.exception.SQLException(e);
+    protected void bindLong(final PreparedStatement statement, final int position, final Long value) throws SQLException {
+        if (value != null) {
+            statement.setLong(position, value);
+        } else {
+            statement.setNull(position, Types.NULL);
         }
     }
 
-    protected void bindBoolean(final PreparedStatement statement, final int position, final Boolean value) {
-        try {
-            if (value != null) {
-                statement.setBoolean(position, value);
-            } else {
-                statement.setNull(position, Types.NULL);
-            }
-        } catch (SQLException e) {
-            throw new co.lariat.jdbc.exception.SQLException(e);
+    protected void bindBoolean(final PreparedStatement statement, final int position, final Boolean value) throws SQLException {
+        if (value != null) {
+            statement.setBoolean(position, value);
+        } else {
+            statement.setNull(position, Types.NULL);
         }
     }
 
-    protected void bindDate(final PreparedStatement statement, final int position, final Date value) {
-        try {
-            if (value != null) {
-                statement.setDate(position, new java.sql.Date(value.getTime()));
-            } else {
-                statement.setNull(position, Types.NULL);
-            }
-        } catch (SQLException e) {
-            throw new co.lariat.jdbc.exception.SQLException(e);
+    protected void bindDate(final PreparedStatement statement, final int position, final Date value) throws SQLException {
+        if (value != null) {
+            statement.setDate(position, new java.sql.Date(value.getTime()));
+        } else {
+            statement.setNull(position, Types.NULL);
         }
     }
 
     @SuppressWarnings("unchecked")
-    protected SetterMethod findSetter(final Object entity, final String columnName, final String columnTypeName) throws ClassNotFoundException, NoSuchMethodException {
+    protected SetterMethod findSetter(final Object entity, final String columnName, final String columnTypeName) throws ClassNotFoundException, NoSuchMethodException, SQLException {
         Class columnClass = Class.forName(columnTypeName);
         Class entityClass = entity.getClass();
 
@@ -592,13 +495,13 @@ public abstract class Connection {
         Type[] parameterTypes = setterMethod.getGenericParameterTypes();
 
         if (parameterTypes.length != 1) {
-            throw new NoSuchMethodError("Setter methods should only accept a single parameter");
+            throw new SQLException("Setter methods should only accept a single parameter");
         }
 
         Type setterArgumentType = parameterTypes[0];
 
         if (!setterArgumentType.getTypeName().equals(columnTypeName)) {
-            throw new NoSuchMethodException("Setter argument type does not match the column type");
+            throw new SQLException("Setter argument type does not match the column type");
         }
 
         SetterMethod foundSetter = new SetterMethod(setterMethod);
@@ -623,12 +526,12 @@ public abstract class Connection {
         return entityClass.getDeclaredAnnotation(Entity.class) != null;
     }
 
-    protected String toCamelCase(final String c) {
+    protected String toCamelCase(final String c) throws SQLException {
         String columnName = c.toLowerCase();
 
         // Leading underscores are not supported
         if (columnName.getBytes()[0] == '_') {
-            throw new UnsupportedColumnNameException("Column names may not begin with underscores");
+            throw new SQLException("Column names cannot begin with underscores");
         }
 
         // Return the unmodified column name, if the column name does not contain any underscores
@@ -656,5 +559,25 @@ public abstract class Connection {
 
         // Return the camel case property name
         return result.toString();
+    }
+
+    public void commit() throws SQLException {
+        getConnection().commit();
+    }
+
+    public void rollback() throws SQLException {
+        getConnection().rollback();
+    }
+
+    public void rollback(final Savepoint savepoint) throws SQLException {
+        getConnection().rollback(savepoint);
+    }
+
+    public boolean getAutoCommit() throws SQLException {
+        return getConnection().getAutoCommit();
+    }
+
+    public void  setAutoCommit(final boolean autoCommit) throws SQLException {
+        getConnection().setAutoCommit(autoCommit);
     }
 }

@@ -8,6 +8,26 @@
     <artifactId>jdbc-simple</artifactId>
     <version>1.0-SNAPSHOT</version>
 
+    <name>jdbc-simple</name>
+    <description>
+        jdbc-simple is a very thin single-jar abstraction layer built on top of the
+        standard JDBC API which greatly simplifies SQL database interactions without
+        adding any transitive dependencies to your project.
+    </description>
+    <url>https://github.com/johndunlap/jdbc-simple</url>
+
+    <licenses>
+        <license>
+            <name>MIT License</name>
+            <url>https://github.com/johndunlap/jdbc-simple/blob/master/LICENSE.md</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <scm>
+        <url>https://github.com/johndunlap/jdbc-simple</url>
+    </scm>
+
     <dependencies>
         <dependency>
             <groupId>javax.persistence</groupId>

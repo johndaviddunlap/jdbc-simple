@@ -33,6 +33,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.math.BigDecimal;
+import java.sql.SQLException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -49,7 +50,7 @@ public class ConnectionTest {
     private static Connection connection;
 
     @BeforeClass
-    public static void beforeClass() {
+    public static void beforeClass() throws SQLException {
         connection = DB.getConnection("jdbc:hsqldb:mem:test", "sa", "");
 
         // Create a table
@@ -86,7 +87,7 @@ public class ConnectionTest {
     }
 
     @Test
-    public void testExecuteMethod() {
+    public void testExecuteMethod() throws SQLException {
         String oldPassword = "password";
         String newPassword = "new34password";
 
@@ -100,56 +101,56 @@ public class ConnectionTest {
     }
 
     @Test
-    public void testFetchStringMethod() {
+    public void testFetchStringMethod() throws SQLException {
         String username = connection.fetchString("select username from users where id = ?", 1);
         assertEquals(username, "admin");
     }
 
     @Test
-    public void testFetchIntegerMethod() {
+    public void testFetchIntegerMethod() throws SQLException {
         Integer id = connection.fetchInteger("select id from users where username = ?", "admin");
         assertEquals(id, new Integer(1));
     }
 
     @Test
-    public void testFetchLongMethod() {
+    public void testFetchLongMethod() throws SQLException {
         Long id = connection.fetchLong("select id from users where username = ?", "admin");
         assertEquals(id, new Long(1));
     }
 
     @Test
-    public void testFetchBooleanMethod() {
+    public void testFetchBooleanMethod() throws SQLException {
         Boolean active = connection.fetchBoolean("select active from users where username = ?", "admin");
         assertEquals(active, true);
     }
 
     @Test
-    public void testFetchFloatMethod() {
+    public void testFetchFloatMethod() throws SQLException {
         Float balance = connection.fetchFloat("select balance from users where username = ?", "admin");
         assertEquals(balance, new Float(1345.23));
     }
 
     @Test
-    public void testFetchDoubleMethod() {
+    public void testFetchDoubleMethod() throws SQLException {
         Double balance = connection.fetchDouble("select balance from users where username = ?", "admin");
         assertEquals(balance, new Double(1345.23));
     }
 
     @Test
-    public void testFetchBigDecimalMethod() {
+    public void testFetchBigDecimalMethod() throws SQLException {
         BigDecimal balance = connection.fetchBigDecimal("select balance from users where username = ?", "admin");
         assertEquals(new Double(balance.doubleValue()), new Double(new BigDecimal(1345.23).doubleValue()));
     }
 
     @Test
-    public void testFetchDateMethod() throws ParseException {
+    public void testFetchDateMethod() throws ParseException, SQLException {
         SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         Date lastActive = connection.fetchDate("select last_active from users where username = ?", "admin");
         assertEquals(lastActive, formatter.parse("1970-01-01 00:00:00"));
     }
 
     @Test
-    public void testFetchEntityMethod() throws ParseException {
+    public void testFetchEntityMethod() throws ParseException, SQLException {
         SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
         User user = connection.fetchEntity(
@@ -183,7 +184,7 @@ public class ConnectionTest {
     }
 
     @Test
-    public void testFetchMapMethod() throws ParseException {
+    public void testFetchMapMethod() throws ParseException, SQLException {
         SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
         Map<String, Object> user = connection.fetchMap(
@@ -200,7 +201,7 @@ public class ConnectionTest {
     }
 
     @Test
-    public void testFetchAllMapMethod() throws ParseException {
+    public void testFetchAllMapMethod() throws ParseException, SQLException {
         SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
         List<Map<String, Object>> users = connection.fetchAllMap("select id, username, password, active, last_active, balance from users order by id asc");
@@ -225,7 +226,7 @@ public class ConnectionTest {
     }
 
     @Test
-    public void testFetchAllEntityMethod() throws ParseException {
+    public void testFetchAllEntityMethod() throws ParseException, SQLException {
         SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
         List<User> users = connection.fetchAllEntity(
@@ -253,7 +254,7 @@ public class ConnectionTest {
     }
 
     @Test
-    public void testFetchAllEntityMap() throws ParseException {
+    public void testFetchAllEntityMap() throws ParseException, SQLException {
         SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
         Map<String, User> users = connection.fetchAllEntityMap(

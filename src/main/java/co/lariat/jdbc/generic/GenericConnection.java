@@ -47,11 +47,7 @@ public class GenericConnection extends Connection {
     }
 
     @Override
-    protected ResultSet fetch(final PreparedStatement statement) {
-        try {
-            return new GenericResultSet(statement.executeQuery());
-        } catch (SQLException e) {
-            throw new co.lariat.jdbc.exception.SQLException(e);
-        }
+    protected ResultSet fetch(final PreparedStatement statement) throws SQLException {
+        return new GenericResultSet(statement.executeQuery());
     }
 }

@@ -26,7 +26,6 @@ package co.lariat.jdbc;
  * #L%
  */
 
-import co.lariat.jdbc.exception.ClassNotFoundException;
 import co.lariat.jdbc.generic.GenericConnection;
 
 import java.sql.DriverManager;
@@ -47,39 +46,26 @@ import static co.lariat.jdbc.Vendor.POSTGRESQL;
 public class DB {
     private static final Pattern JDBC_URL_PATTERN = Pattern.compile("^jdbc:([a-zA-Z0-9]+):.*$");
 
-    public static Connection getConnection(final String url) {
-        try {
-            loadDriverClass(url);
-            java.sql.Connection connection = DriverManager.getConnection(url);
-            return new GenericConnection(connection);
-        } catch (SQLException e) {
-            // Re-throw as a runtime exception
-            throw new co.lariat.jdbc.exception.SQLException(e);
-        }
+    public static Connection getConnection(final String url) throws SQLException {
+        loadDriverClass(url);
+        java.sql.Connection connection = DriverManager.getConnection(url);
+        return new GenericConnection(connection);
     }
 
-    public static Connection getConnection(final String url, final Properties info) {
-        try {
-            loadDriverClass(url);
-            java.sql.Connection connection = DriverManager.getConnection(url, info);
-            return new GenericConnection(connection);
-        } catch (SQLException e) {
-            // Re-throw as a runtime exception
-            throw new co.lariat.jdbc.exception.SQLException(e);
-        }
+    public static Connection getConnection(final String url, final Properties info) throws SQLException {
+        loadDriverClass(url);
+        java.sql.Connection connection = DriverManager.getConnection(url, info);
+        return new GenericConnection(connection);
     }
 
-    public static Connection getConnection(final String url, final String user, final String password) {
-        java.sql.Connection connection;
+    public static Connection getConnection(final String url, final String user, final String password) throws SQLException {
+        // Attempt to load the appropriate driver class
+        loadDriverClass(url);
 
-        try {
-            loadDriverClass(url);
-            connection = DriverManager.getConnection(url, user, password);
-        } catch (SQLException e) {
-            // Re-throw as a runtime exception
-            throw new co.lariat.jdbc.exception.SQLException(e);
-        }
+        // Attempt to connect to the database
+        java.sql.Connection connection = DriverManager.getConnection(url, user, password);
 
+        // Return the connection
         return new GenericConnection(connection);
     }
 
@@ -106,23 +92,30 @@ public class DB {
         return Vendor.GENERIC;
     }
 
-    protected static void loadDriverClass(final String url) {
+    protected static void loadDriverClass(final String url) throws SQLException {
+        String driverClass = "";
+
         try {
             Vendor vendor = resolveVendor(url);
 
             // Attempt to load the driver class
             if (vendor.equals(POSTGRESQL)) {
-                Class.forName("org.postgresql.Driver");
+                driverClass = " org.postgresql.Driver";
             } else if (vendor.equals(ORACLE)) {
-                Class.forName("oracle.jdbc.driver.OracleDriver");
+                driverClass = " oracle.jdbc.driver.OracleDriver";
             } else if (vendor.equals(MYSQL)) {
-                Class.forName("com.mysql.jdbc.Driver");
+                driverClass = " com.mysql.jdbc.Driver";
             } else if (vendor.equals(HSQLDB)) {
-                Class.forName("org.hsqldb.jdbcDriver");
+                driverClass = " org.hsqldb.jdbcDriver";
+            }
+
+            // Attempt to load the driver class
+            if (driverClass.length() > 0) {
+                Class.forName(driverClass.trim());
             }
 
         } catch (java.lang.ClassNotFoundException e) {
-            throw new ClassNotFoundException(e);
+            throw new SQLException("Failed to load JDBC driver class" + driverClass, e);
         }
     }
 }
