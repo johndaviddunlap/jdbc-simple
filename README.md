@@ -172,6 +172,8 @@ public class Main {
             1
         );
 
+        System.out.println("Before update: " + user);
+
         // Update the password
         connection.execute(
             "update users set password = ? where username = ?",
@@ -186,13 +188,13 @@ public class Main {
             1
         );
 
+        System.out.println("After update: " + user);
+
         // Fetch the results as a map of objects keyed by column name
         Map<String, Object> user = connection.fetchMap(
             "select id, username, password, active, last_active, balance from users where id = ?",
             1
         );
-
-        System.out.println(user);
     }
 
     public static class User {
