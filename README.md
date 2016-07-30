@@ -128,6 +128,16 @@ public class Main {
 ```
 
 ## Query returns a single row with multiple columns
+### What you need to know
+```java
+public abstract class Connection {
+    public <T> T fetchEntity(final T entity, final String sql, final Object ... arguments) throws SQLException;
+    public <T> T fetchEntity(final Class<T> clazz, final String sql, final Object ... arguments) throws SQLException
+    public Map<String, Object> fetchMap(final String sql, final Object ... arguments) throws SQLException;
+}
+```
+
+### Complete working example
 ```java
 import java.sql.SQLException;
 import java.util.Date;
@@ -155,9 +165,16 @@ public class Main {
             "1970-01-01 00:00:00"
         );
 
+        // Fetch the results as a Java object
         User user = connection.fetchEntity(
             User.class,
             "select id, username, password, active, last_active from users where id = ?",
+            1
+        );
+
+        // Fetch the results as a map of objects keyed by column name
+        Map<String, Object> user = connection.fetchMap(
+            "select id, username, password, active, last_active, balance from users where id = ?",
             1
         );
 
