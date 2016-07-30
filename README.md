@@ -95,6 +95,8 @@ public class Main {
         
         String username = connection.fetchString("select username from users where id = ?", 1);
         Date lastActive = connection.fetchDate("select last_active from users where id = ?", 1);
+        
+        // Etc
     }
 }
 ```
