@@ -358,6 +358,10 @@ public abstract class Connection {
         return fetchField(sql, args).getBoolean(1);
     }
 
+    public Object fetchObject(final String sql, final Object ... args) throws SQLException {
+        return fetchField(sql, args).getObject(1);
+    }
+
     protected void bindArguments(final PreparedStatement statement, final Object ... args) throws SQLException {
         int index = 1;
 

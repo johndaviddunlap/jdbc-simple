@@ -204,7 +204,9 @@ public class ConnectionTest {
     public void testFetchAllMapMethod() throws ParseException, SQLException {
         SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
-        List<Map<String, Object>> users = connection.fetchAllMap("select id, username, password, active, last_active, balance from users order by id asc");
+        List<Map<String, Object>> users = connection.fetchAllMap(
+            "select id, username, password, active, last_active, balance from users order by id asc"
+        );
 
         assertEquals(new Integer(2), (Integer) users.size());
 
