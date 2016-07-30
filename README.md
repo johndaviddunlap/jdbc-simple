@@ -62,13 +62,12 @@ public class Main {
             true,
             "1970-01-01 00:00:00"
         );
+        
+        // Update some data
         connection.execute(
-            "insert into users(id, username, password, active, last_active) values(?,?,?,?,?)",
-            2,
-            "bob.wiley",
+            "update users set password = ? where username = ?",
             "password2",
-            true,
-            "1973-02-02 00:00:00"
+            "admin"
         );
     }
 }
@@ -99,13 +98,13 @@ public class Main {
     public static void main(String[] args) throws SQLException {
         Connection connection = DB.getConnection("jdbc:hsqldb:mem:test", "sa", "");
         connection.execute("create table users(\n" +
-            "            id INTEGER not null,\n" +
-            "            username char(25),\n" +
-            "            password char(25),\n" +
-            "            active BOOLEAN,\n" +
-            "            last_active TIMESTAMP,\n" +
-            "            PRIMARY KEY (id)\n" +
-            "        );"
+            "    id INTEGER not null,\n" +
+            "    username char(25),\n" +
+            "    password char(25),\n" +
+            "    active BOOLEAN,\n" +
+            "    last_active TIMESTAMP,\n" +
+            "    PRIMARY KEY (id)\n" +
+            ");"
         );
 
         // Add some data
