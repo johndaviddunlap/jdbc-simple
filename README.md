@@ -26,6 +26,7 @@ _You will need to have the JDBC HSQLDB driver(only necessary for demonstration p
     <version>1.8.0.10</version>
 </dependency>
 ```
+_Coordinates for other build systems can be found [here](http://search.maven.org/#artifactdetails%7Chsqldb%7Chsqldb%7C1.8.0.10%7Cjar)_
 
 ##Query returns nothing
 ```java
