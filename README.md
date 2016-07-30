@@ -16,9 +16,18 @@ These are the core use cases which are handled by jdbc-simple.
 * Binds query results to Java objects
 
 # Examples
-For complete working examples, look at the unit tests.
+For more working examples, look at the unit tests [here](https://github.com/johndunlap/jdbc-simple/tree/master/src/test/java/co/lariat/jdbc/test).
 
-Query returns nothing:
+_You will need to have the JDBC HSQLDB driver(only necessary for demonstration purposes) on your classpath for the following examples to run. You can add this driver to your project by adding the following XML snippet to your Maven POM:_
+```xml
+<dependency>
+    <groupId>hsqldb</groupId>
+    <artifactId>hsqldb</artifactId>
+    <version>1.8.0.10</version>
+</dependency>
+```
+
+##Query returns nothing
 ```java
 import java.sql.SQLException;
 
@@ -44,10 +53,51 @@ public class Main {
             true,
             "1970-01-01 00:00:00"
         );
+        connection.execute(
+            "insert into users(id, username, password, active, last_active) values(?,?,?,?,?)",
+            2,
+            "bob.wiley",
+            "password2",
+            true,
+            "1973-02-02 00:00:00"
+        );
     }
 }
 ```
 
-* Query returns a single row with a single column
-* Query returns a single row with multiple columns
-* Query returns multiple rows with one or more columns
+## Query returns a single row with a single column
+```java
+import java.sql.SQLException;
+import java.util.Date;
+
+public class Main {
+    public static void main(String[] args) throws SQLException {
+        Connection connection = DB.getConnection("jdbc:hsqldb:mem:test", "sa", "");
+        connection.execute("create table users(\n" +
+            "            id INTEGER not null,\n" +
+            "            username char(25),\n" +
+            "            password char(25),\n" +
+            "            active BOOLEAN,\n" +
+            "            last_active TIMESTAMP,\n" +
+            "            PRIMARY KEY (id)\n" +
+            "        );"
+        );
+
+        // Add some data
+        connection.execute(
+            "insert into users(id, username, password, active, last_active) values(?,?,?,?,?)",
+            1,
+            "admin",
+            "password",
+            true,
+            "1970-01-01 00:00:00"
+        );
+        
+        String username = connection.fetchString("select username from users where id = ?", 1);
+        Date lastActive = connection.fetchDate("select last_active from users where id = ?", 1);
+    }
+}
+```
+
+## Query returns a single row with multiple columns
+## Query returns multiple rows with one or more columns
