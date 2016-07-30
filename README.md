@@ -15,6 +15,9 @@ These are the core use cases which are handled by jdbc-simple.
 * Query API which eliminates JDBC boiler plate without getting in your way
 * Binds query results to Java objects
 
+# Documentation
+* [Javadoc](http://htmlpreview.github.io/?https://github.com/johndunlap/jdbc-simple/blob/gh-pages/index.html)
+
 # Examples
 For more working examples, look at the unit tests [here](https://github.com/johndunlap/jdbc-simple/tree/master/src/test/java/co/lariat/jdbc/test).
 
