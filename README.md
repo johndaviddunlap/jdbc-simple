@@ -186,12 +186,6 @@ public class Main {
         );
 
         System.out.println("After update: " + user);
-
-        // Fetch the results as a map of objects keyed by column name
-        Map<String, Object> user = connection.fetchMap(
-            "select id, username, password, active, last_active, balance from users where id = ?",
-            1
-        );
     }
 
     public static class User {
@@ -256,6 +250,15 @@ public class Main {
 ```
 
 ## Query returns multiple rows with one or more columns
+### What you need to know
+```java
+public abstract class Connection {
+    public <T> List<T> fetchAllEntity(final Class<T> clazz, final String sql, final Object... arguments) throws SQLException;
+    public List<Map<String, Object>> fetchAllMap(final String sql, final Object ... arguments) throws SQLException;
+}
+```
+
+## Complete working example
 ```java
 import java.sql.SQLException;
 import java.util.Date;
