@@ -4,6 +4,7 @@ I've always liked how JPA can bind query results to Java objects but dislike man
 
 Generally speaking, the vast majority of SQL database interactions fall into one of the following categories:
 * Query returns nothing
+** ```java public boolean execute(final String sql, final Object... arguments) throws SQLException```
 * Query returns a single row with a single column
 * Query returns a single row with multiple columns
 * Query returns multiple rows with one or more columns
