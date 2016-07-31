@@ -14,6 +14,7 @@ These are the core use cases which are handled by jdbc-simple.
 * Small and very lightweight. No transitive dependencies will be added to your project
 * Query API which eliminates JDBC boiler plate without getting in your way
 * Binds query results to Java objects
+* Compatible with existing applications which already use the JDBC API
 
 # Documentation
 * [Javadoc](https://cdn.rawgit.com/johndunlap/jdbc-simple/gh-pages/index.html)
