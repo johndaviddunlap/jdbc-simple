@@ -1,4 +1,4 @@
-package co.lariat.jdbc.test.entity;
+package co.lariat.jdbc.entity;
 
 /*-
  * #%L

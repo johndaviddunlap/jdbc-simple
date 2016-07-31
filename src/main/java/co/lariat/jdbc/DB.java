@@ -26,7 +26,7 @@ package co.lariat.jdbc;
  * #L%
  */
 
-import co.lariat.jdbc.generic.GenericConnection;
+import co.lariat.jdbc.generic.GenericSimpleConnection;
 
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -46,19 +46,19 @@ import static co.lariat.jdbc.Vendor.POSTGRESQL;
 public class DB {
     private static final Pattern JDBC_URL_PATTERN = Pattern.compile("^jdbc:([a-zA-Z0-9]+):.*$");
 
-    public static Connection getConnection(final String url) throws SQLException {
+    public static SimpleConnection getConnection(final String url) throws SQLException {
         loadDriverClass(url);
         java.sql.Connection connection = DriverManager.getConnection(url);
-        return new GenericConnection(connection);
+        return new GenericSimpleConnection(connection);
     }
 
-    public static Connection getConnection(final String url, final Properties info) throws SQLException {
+    public static SimpleConnection getConnection(final String url, final Properties info) throws SQLException {
         loadDriverClass(url);
         java.sql.Connection connection = DriverManager.getConnection(url, info);
-        return new GenericConnection(connection);
+        return new GenericSimpleConnection(connection);
     }
 
-    public static Connection getConnection(final String url, final String user, final String password) throws SQLException {
+    public static SimpleConnection getConnection(final String url, final String user, final String password) throws SQLException {
         // Attempt to load the appropriate driver class
         loadDriverClass(url);
 
@@ -66,7 +66,7 @@ public class DB {
         java.sql.Connection connection = DriverManager.getConnection(url, user, password);
 
         // Return the connection
-        return new GenericConnection(connection);
+        return new GenericSimpleConnection(connection);
     }
 
     protected static Vendor resolveVendor(final String url) {

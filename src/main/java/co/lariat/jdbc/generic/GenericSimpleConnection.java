@@ -1,4 +1,4 @@
-package co.lariat.jdbc;
+package co.lariat.jdbc.generic;
 
 /*-
  * #%L
@@ -26,51 +26,28 @@ package co.lariat.jdbc;
  * #L%
  */
 
+import co.lariat.jdbc.SimpleConnection;
+import co.lariat.jdbc.SimpleResultSet;
+
+import javax.sql.DataSource;
+import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.util.Iterator;
 
 /**
  * @author <a href="mailto:john@lariat.co">John D. Dunlap</a>
- * @since 9/14/15 3:27 PM - Created with IntelliJ IDEA.
+ * @since 9/26/15 3:24 PM - Created with IntelliJ IDEA.
  */
-public abstract class ResultSet implements Iterable<Record> {
-    private java.sql.ResultSet resultSet;
-
-    public ResultSet(final java.sql.ResultSet resultSet) {
-        this.resultSet = resultSet;
+public class GenericSimpleConnection extends SimpleConnection {
+    public GenericSimpleConnection(final DataSource dataSource) throws SQLException {
+        super(dataSource);
     }
 
-    protected java.sql.ResultSet getResultSet() {
-        return resultSet;
+    public GenericSimpleConnection(final java.sql.Connection connection) {
+        super(connection);
     }
 
-    protected abstract Record createRecord(final java.sql.ResultSet resultSet);
-
-    public Iterator<Record> iterator() {
-        return new ResultSetIterator(resultSet);
-    }
-
-    public class ResultSetIterator implements Iterator <Record>{
-        private java.sql.ResultSet resultSet;
-
-        public ResultSetIterator(final java.sql.ResultSet resultSet) {
-            this.resultSet = resultSet;
-        }
-
-        public boolean hasNext() {
-            try {
-                return resultSet.next();
-            } catch (SQLException e) {
-                throw new RuntimeException("Caught SQLException: " + e.toString());
-            }
-        }
-
-        public Record next() {
-            return createRecord(resultSet);
-        }
-    }
-
-    public void close() throws SQLException {
-        resultSet.close();
+    @Override
+    protected SimpleResultSet fetch(final PreparedStatement statement) throws SQLException {
+        return new GenericSimpleResultSet(statement.executeQuery());
     }
 }

@@ -26,20 +26,21 @@ package co.lariat.jdbc.generic;
  * #L%
  */
 
-import co.lariat.jdbc.Record;
-import co.lariat.jdbc.ResultSet;
+import co.lariat.jdbc.SimpleRecord;
+import co.lariat.jdbc.SimpleResultSet;
+import java.sql.ResultSet;
 
 /**
  * @author <a href="mailto:john@lariat.co">John D. Dunlap</a>
  * @since 9/26/15 4:01 PM - Created with IntelliJ IDEA.
  */
-public class GenericResultSet extends ResultSet {
-    public GenericResultSet(java.sql.ResultSet resultSet) {
+public class GenericSimpleResultSet extends SimpleResultSet {
+    public GenericSimpleResultSet(ResultSet resultSet) {
         super(resultSet);
     }
 
     @Override
-    protected Record createRecord(final java.sql.ResultSet rs) {
-        return new GenericRecord(rs);
+    protected SimpleRecord createRecord() {
+        return new GenericSimpleRecord(this);
     }
 }

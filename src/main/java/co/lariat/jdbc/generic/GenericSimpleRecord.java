@@ -1,4 +1,4 @@
-package co.lariat.jdbc;
+package co.lariat.jdbc.generic;
 
 /*-
  * #%L
@@ -26,41 +26,16 @@ package co.lariat.jdbc;
  * #L%
  */
 
+import co.lariat.jdbc.SimpleRecord;
+
 import java.sql.ResultSet;
-import java.sql.SQLException;
 
 /**
  * @author <a href="mailto:john@lariat.co">John D. Dunlap</a>
- * @since 9/26/15 4:07 PM - Created with IntelliJ IDEA.
+ * @since 9/26/15 4:08 PM - Created with IntelliJ IDEA.
  */
-public abstract class Record {
-    private ResultSet resultSet;
-
-    public Record(final ResultSet resultSet) {
-        this.resultSet = resultSet;
-    }
-
-    public int getColumnCount() throws SQLException {
-        return resultSet.getMetaData().getColumnCount();
-    }
-
-    public String getColumnName(final int position) throws SQLException {
-        return resultSet.getMetaData().getColumnName(position);
-    }
-
-    public String getColumnClassName(final int position) throws SQLException {
-        return resultSet.getMetaData().getColumnClassName(position);
-    }
-
-    public Object getValue(final int position) throws SQLException {
-        return resultSet.getObject(position);
-    }
-
-    public String getStringByName(final String columnLabel) throws SQLException {
-        return resultSet.getString(columnLabel);
-    }
-
-    public ResultSet getResultSet() {
-        return resultSet;
+public class GenericSimpleRecord extends SimpleRecord {
+    public GenericSimpleRecord(ResultSet resultSet) {
+        super(resultSet);
     }
 }
