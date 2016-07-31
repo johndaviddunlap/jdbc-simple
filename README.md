@@ -47,13 +47,13 @@ public class Main {
     public static void main(String[] args) throws SQLException {
         Connection connection = DB.getConnection("jdbc:hsqldb:mem:test", "sa", "");
         connection.execute("create table users(\n" +
-            "            id INTEGER not null,\n" +
-            "            username char(25),\n" +
-            "            password char(25),\n" +
-            "            active BOOLEAN,\n" +
-            "            last_active TIMESTAMP,\n" +
-            "            PRIMARY KEY (id)\n" +
-            "        );"
+            "    id INTEGER not null,\n" +
+            "    username char(25),\n" +
+            "    password char(25),\n" +
+            "    active BOOLEAN,\n" +
+            "    last_active TIMESTAMP,\n" +
+            "    PRIMARY KEY (id)\n" +
+            ");"
         );
 
         // Add some data
@@ -146,13 +146,13 @@ public class Main {
     public static void main(String[] args) throws SQLException {
         Connection connection = DB.getConnection("jdbc:hsqldb:mem:test", "sa", "");
         connection.execute("create table users(\n" +
-            "            id INTEGER not null,\n" +
-            "            username char(25),\n" +
-            "            password char(25),\n" +
-            "            active BOOLEAN,\n" +
-            "            last_active TIMESTAMP,\n" +
-            "            PRIMARY KEY (id)\n" +
-            "        );"
+            "    id INTEGER not null,\n" +
+            "    username char(25),\n" +
+            "    password char(25),\n" +
+            "    active BOOLEAN,\n" +
+            "    last_active TIMESTAMP,\n" +
+            "    PRIMARY KEY (id)\n" +
+            ");"
         );
 
         // Add some data
@@ -271,13 +271,13 @@ public class Main {
     public static void main(String[] args) throws SQLException {
         Connection connection = DB.getConnection("jdbc:hsqldb:mem:test", "sa", "");
         connection.execute("create table users(\n" +
-            "            id INTEGER not null,\n" +
-            "            username char(25),\n" +
-            "            password char(25),\n" +
-            "            active BOOLEAN,\n" +
-            "            last_active TIMESTAMP,\n" +
-            "            PRIMARY KEY (id)\n" +
-            "        );"
+            "    id INTEGER not null,\n" +
+            "    username char(25),\n" +
+            "    password char(25),\n" +
+            "    active BOOLEAN,\n" +
+            "    last_active TIMESTAMP,\n" +
+            "    PRIMARY KEY (id)\n" +
+            ");"
         );
 
         // Add some data
