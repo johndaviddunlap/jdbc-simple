@@ -32,238 +32,10 @@ _You will need to have the JDBC HSQLDB driver(only necessary for demonstration p
 ```
 _Dependency coordinates for other build systems can be found [here](http://search.maven.org/#artifactdetails%7Chsqldb%7Chsqldb%7C1.8.0.10%7Cjar)_
 
-## Query returns nothing
-### What you need to know
 ```java
-public abstract class SimpleConnection {
-    public boolean execute(final String sql, final Object... arguments) throws SQLException;
-}
-```
+import co.lariat.jdbc.DB;
+import co.lariat.jdbc.SimpleConnection;
 
-### Complete working example
-```java
-import java.sql.SQLException;
-
-public class Main {
-    public static void main(String[] args) throws SQLException {
-        SimpleConnection connection = DB.getConnection("jdbc:hsqldb:mem:test", "sa", "");
-        connection.execute("create table users(\n" +
-            "    id INTEGER not null,\n" +
-            "    username char(25),\n" +
-            "    password char(25),\n" +
-            "    active BOOLEAN,\n" +
-            "    last_active TIMESTAMP,\n" +
-            "    PRIMARY KEY (id)\n" +
-            ");"
-        );
-
-        // Add some data
-        connection.execute(
-            "insert into users(id, username, password, active, last_active) values(?,?,?,?,?)",
-            1,
-            "admin",
-            "password",
-            true,
-            "1970-01-01 00:00:00"
-        );
-        
-        // Update some data
-        connection.execute(
-            "update users set password = ? where username = ?",
-            "password2",
-            "admin"
-        );
-    }
-}
-```
-
-## Query returns a single row with a single column
-### What you need to know
-```java
-public abstract class SimpleConnection {
-    public String fetchString(final String sql, final Object ... args) throws SQLException;
-    public Integer fetchInteger(final String sql, final Object ... args) throws SQLException;
-    public Long fetchLong(final String sql, final Object ... args) throws SQLException;
-    public Float fetchFloat(final String sql, final Object ... args) throws SQLException;
-    public Double fetchDouble(final String sql, final Object ... args) throws SQLException;
-    public BigDecimal fetchBigDecimal(final String sql, final Object ... args) throws SQLException;
-    public Date fetchDate(final String sql, final Object ... args) throws SQLException;
-    public Boolean fetchBoolean(final String sql, final Object ... args) throws SQLException;
-    public Object fetchObject(final String sql, final Object ... args) throws SQLException;
-}
-```
-
-### Complete working example
-```java
-import java.sql.SQLException;
-import java.util.Date;
-
-public class Main {
-    public static void main(String[] args) throws SQLException {
-        SimpleConnection connection = DB.getConnection("jdbc:hsqldb:mem:test", "sa", "");
-        connection.execute("create table users(\n" +
-            "    id INTEGER not null,\n" +
-            "    username char(25),\n" +
-            "    password char(25),\n" +
-            "    active BOOLEAN,\n" +
-            "    last_active TIMESTAMP,\n" +
-            "    PRIMARY KEY (id)\n" +
-            ");"
-        );
-
-        // Add some data
-        connection.execute(
-            "insert into users(id, username, password, active, last_active) values(?,?,?,?,?)",
-            1,
-            "admin",
-            "password",
-            true,
-            "1970-01-01 00:00:00"
-        );
-        
-        String username = connection.fetchString("select username from users where id = ?", 1);
-
-        System.out.println("Username: " + username);
-    }
-}
-```
-
-## Query returns a single row with multiple columns
-### What you need to know
-```java
-public abstract class SimpleConnection {
-    public <T> T fetchEntity(final T entity, final String sql, final Object ... arguments) throws SQLException;
-    public <T> T fetchEntity(final Class<T> clazz, final String sql, final Object ... arguments) throws SQLException;
-    public Map<String, Object> fetchMap(final String sql, final Object ... arguments) throws SQLException;
-}
-```
-
-### Complete working example
-```java
-import java.sql.SQLException;
-import java.util.Date;
-
-public class Main {
-    public static void main(String[] args) throws SQLException {
-        SimpleConnection connection = DB.getConnection("jdbc:hsqldb:mem:test", "sa", "");
-        connection.execute("create table users(\n" +
-            "    id INTEGER not null,\n" +
-            "    username char(25),\n" +
-            "    password char(25),\n" +
-            "    active BOOLEAN,\n" +
-            "    last_active TIMESTAMP,\n" +
-            "    PRIMARY KEY (id)\n" +
-            ");"
-        );
-
-        // Add some data
-        connection.execute(
-            "insert into users(id, username, password, active, last_active) values(?,?,?,?,?)",
-            1,
-            "admin",
-            "password",
-            true,
-            "1970-01-01 00:00:00"
-        );
-
-        // Fetch the results as a Java object
-        User user = connection.fetchEntity(
-            User.class,
-            "select id, username, password, active, last_active from users where id = ?",
-            1
-        );
-
-        System.out.println("Before update: " + user);
-
-        // Update the password
-        connection.execute(
-            "update users set password = ? where username = ?",
-            "password2",
-            "admin"
-        );
-        
-        // Refresh the password property in the object
-        connection.fetchEntity(
-            user,
-            "select password from users where id = ?",
-            1
-        );
-
-        System.out.println("After update: " + user);
-    }
-
-    public static class User {
-        private Long id;
-        private String username;
-        private String password;
-        private Boolean active;
-        private Date lastActive;
-
-        public Long getId() {
-            return id;
-        }
-
-        public void setId(Long id) {
-            this.id = id;
-        }
-
-        public String getUsername() {
-            return username;
-        }
-
-        public void setUsername(String username) {
-            this.username = username;
-        }
-
-        public String getPassword() {
-            return password;
-        }
-
-        public void setPassword(String password) {
-            this.password = password;
-        }
-
-        public Boolean getActive() {
-            return active;
-        }
-
-        public void setActive(Boolean active) {
-            this.active = active;
-        }
-
-        public Date getLastActive() {
-            return lastActive;
-        }
-
-        public void setLastActive(Date lastActive) {
-            this.lastActive = lastActive;
-        }
-
-        @Override
-        public String toString() {
-            return "User{" +
-                "id=" + id +
-                ", username='" + username + '\'' +
-                ", password='" + password + '\'' +
-                ", active=" + active +
-                ", lastActive=" + lastActive +
-                '}';
-        }
-    }
-}
-```
-
-## Query returns multiple rows with one or more columns
-### What you need to know
-```java
-public abstract class SimpleConnection {
-    public <T> List<T> fetchAllEntity(final Class<T> clazz, final String sql, final Object... arguments) throws SQLException;
-    public List<Map<String, Object>> fetchAllMap(final String sql, final Object ... arguments) throws SQLException;
-}
-```
-
-## Complete working example
-```java
 import java.sql.SQLException;
 import java.util.Date;
 import java.util.List;
@@ -299,13 +71,54 @@ public class Main {
             "1973-02-02 00:00:00"
         );
 
+        String username = "bob.wiley";
+
+        System.out.println("==== FETCH A SINGLE ROW WITH A SINGLE COLUMN ====");
+
+        Long userId = connection.fetchLong(
+            "select id from users where username = ?",
+            username
+        );
+
+        System.out.println("User id for username " + username + " is " + userId);
+
+        System.out.println("\n==== FETCH A SINGLE ROW WITH MULTIPLE COLUMNS ====");
+
+        User user = connection.fetchEntity(
+            User.class,
+            "select * from users where id = ?",
+            2
+        );
+
+        System.out.println("User before update: " + user);
+
+        // ==== RUN A QUERY WHICH RETURNS NOTHING ====
+
+        connection.execute(
+            "update users set password = ? where id = ?",
+            "password3",
+            2
+        );
+
+        System.out.println("\n==== FETCH A SINGLE ROW INTO AN EXISTING ENTITY ====");
+
+        connection.fetchEntity(
+            user,
+            "select password from users where id = ?",
+            2
+        );
+
+        System.out.println("User after update: " + user);
+
+        System.out.println("\n==== FETCH MULTIPLE ROWS WITH MULTIPLE COLUMNS ====");
+
         List<User> users = connection.fetchAllEntity(
             User.class,
             "select id, username, password, active, last_active from users"
         );
 
-        for (User user : users) {
-            System.out.println(user);
+        for (User u : users) {
+            System.out.println(u);
         }
     }
 
