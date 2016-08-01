@@ -55,4 +55,11 @@ public class SetterMethod {
     public void invoke(Object instance, Object value) throws InvocationTargetException, IllegalAccessException {
         method.invoke(instance, value);
     }
+
+    @Override
+    public String toString() {
+        return "SetterMethod{" +
+            "method=" + method +
+            '}';
+    }
 }

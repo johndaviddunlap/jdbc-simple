@@ -82,11 +82,6 @@ public abstract class SimpleConnection implements Connection {
     private Connection connection;
 
     /**
-     * This cache is used as a performance optimization, when searching for setter methods
-     */
-    private Map<Class<?>, Map<String, SetterMethod>> setterCache = new HashMap<>();
-
-    /**
      * Construct an instance of this class and use the provided {@link javax.sql.DataSource} to obtain
      * a {@link java.sql.Connection}
      * @param dataSource the datasource which should be used to obtain a database connection
@@ -292,13 +287,13 @@ public abstract class SimpleConnection implements Connection {
 
             return entity;
         } catch (NoSuchMethodException e) {
-            throw new SQLException("Cannot invoke setter", e);
+            throw new SQLException("Cannot invoke setter: ", e);
         } catch (IllegalAccessException e) {
-            throw new SQLException("Cannot invoke setter", e);
+            throw new SQLException("Cannot invoke setter: ", e);
         } catch (InvocationTargetException e) {
-            throw new SQLException("Cannot invoke setter", e);
+            throw new SQLException("Cannot invoke setter: ", e);
         } catch (ClassNotFoundException e) {
-            throw new SQLException("Cannot invoke setter", e);
+            throw new SQLException("Cannot invoke setter: ", e);
         }
     }
 
@@ -1340,16 +1335,6 @@ public abstract class SimpleConnection implements Connection {
         Class columnClass = Class.forName(columnTypeName);
         Class entityClass = entity.getClass();
 
-        // Check the cache before scanning the entity
-        if (setterCache.containsKey(entityClass.getClass())) {
-            if (setterCache.get(entityClass.getClass()).containsKey(columnName)) {
-                // Return the cached setter, if one was found
-                return setterCache.get(entityClass.getClass()).get(columnName);
-            }
-        } else {
-            setterCache.put(entityClass.getClass(), new HashMap<String, SetterMethod>());
-        }
-
         // Attempt to find a setter name for the property
         String setterName = "set"
             + new String(new char[]{columnName.charAt(0)}).toUpperCase()
@@ -1383,9 +1368,6 @@ public abstract class SimpleConnection implements Connection {
         }
 
         SetterMethod foundSetter = new SetterMethod(setterMethod);
-
-        // Cache the setter
-        setterCache.get(entityClass.getClass()).put(columnName, foundSetter);
 
         // Return the setter
         return foundSetter;

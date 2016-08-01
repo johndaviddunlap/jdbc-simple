@@ -55,14 +55,14 @@ public class SimpleConnectionTest {
 
         // Create a table
         simpleConnection.execute("create table users(\n" +
-            "            id INTEGER not null,\n" +
-            "            username char(25),\n" +
-            "            password char(25),\n" +
-            "            active BOOLEAN,\n" +
-            "            last_active TIMESTAMP,\n" +
-            "            balance NUMERIC(10, 2),\n" +
-            "            PRIMARY KEY (id)\n" +
-            "        );"
+            "   id INTEGER not null,\n" +
+            "   username char(25),\n" +
+            "   password char(25),\n" +
+            "   active BOOLEAN,\n" +
+            "   last_active TIMESTAMP,\n" +
+            "   balance NUMERIC(10, 2),\n" +
+            "   PRIMARY KEY (id)\n" +
+            ");"
         );
 
         // Add some data
