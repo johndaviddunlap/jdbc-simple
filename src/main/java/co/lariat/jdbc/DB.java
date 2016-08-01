@@ -28,8 +28,12 @@ package co.lariat.jdbc;
 
 import co.lariat.jdbc.generic.GenericSimpleConnection;
 
+import java.io.PrintStream;
+import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -45,6 +49,15 @@ import static co.lariat.jdbc.Vendor.POSTGRESQL;
  */
 public class DB {
     private static final Pattern JDBC_URL_PATTERN = Pattern.compile("^jdbc:([a-zA-Z0-9]+):.*$");
+    private static PrintStream printStream = System.out;
+
+    public static PrintStream getPrintStream() {
+        return printStream;
+    }
+
+    public static void setPrintStream(PrintStream printStream) {
+        DB.printStream = printStream;
+    }
 
     public static SimpleConnection getConnection(final String url) throws SQLException {
         loadDriverClass(url);
@@ -116,6 +129,63 @@ public class DB {
 
         } catch (java.lang.ClassNotFoundException e) {
             throw new SQLException("Failed to load JDBC driver class" + driverClass, e);
+        }
+    }
+
+    /**
+     * This is a utility method for safely closing a connection object. This method should not, under any circumstances,
+     * throw an exception
+     * @param connection the connection object which should be closed
+     */
+    public static void closeConnection(final Connection connection) {
+        if (connection != null) {
+            try {
+                connection.close();
+            } catch (SQLException e) {
+                printStream.print("Could not close connection: ");
+                e.printStackTrace(printStream);
+            } catch (Throwable e) {
+                printStream.print("Encountered unexpected error while attempting to close a connection: ");
+                e.printStackTrace(printStream);
+            }
+        }
+    }
+
+    /**
+     * This is a utility method for safely closing a statement object. This method should not, under any circumstances,
+     * throw an exception
+     * @param statement the statement which should be closed
+     */
+    public static void closeStatement(final Statement statement) {
+        if (statement != null) {
+            try {
+                statement.close();
+            } catch (SQLException e) {
+                printStream.print("Failed to close statement: ");
+                e.printStackTrace(printStream);
+            } catch (Throwable e) {
+                printStream.print("Encountered unexpected error while attempting to close a statement: ");
+                e.printStackTrace(printStream);
+            }
+        }
+    }
+
+    /**
+     * This is a utility method for safely closing a resultset object. This method should not, under any circumstances,
+     * throw an exception
+     * @param resultSet the resultset which should be closed
+     */
+    public static void closeResultSet(final ResultSet resultSet) {
+        if (resultSet != null) {
+            try {
+                resultSet.close();
+            } catch (SQLException e) {
+                printStream.print("Failed to close resultset: ");
+                e.printStackTrace(printStream);
+            } catch (Throwable e) {
+                printStream.print("Encountered unexpected error while attempting to close a resultset: ");
+                e.printStackTrace(printStream);
+            }
         }
     }
 }

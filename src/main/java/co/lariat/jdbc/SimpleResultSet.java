@@ -216,14 +216,6 @@ public abstract class SimpleResultSet implements Iterable<SimpleRecord>, ResultS
     /**
      * {@inheritDoc}
      */
-    @Deprecated
-    public InputStream getUnicodeStream(int columnIndex) throws SQLException {
-        return resultSet.getUnicodeStream(columnIndex);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
     public InputStream getBinaryStream(int columnIndex) throws SQLException {
         return resultSet.getBinaryStream(columnIndex);
     }
@@ -324,14 +316,6 @@ public abstract class SimpleResultSet implements Iterable<SimpleRecord>, ResultS
      */
     public InputStream getAsciiStream(String columnLabel) throws SQLException {
         return resultSet.getAsciiStream(columnLabel);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Deprecated
-    public InputStream getUnicodeStream(String columnLabel) throws SQLException {
-        return resultSet.getUnicodeStream(columnLabel);
     }
 
     /**
@@ -1417,5 +1401,26 @@ public abstract class SimpleResultSet implements Iterable<SimpleRecord>, ResultS
      */
     public <T> T getObject(String columnLabel, Class<T> type) throws SQLException {
         return resultSet.getObject(columnLabel, type);
+    }
+
+
+    /**
+     * {@inheritDoc}
+     *
+     * This is provided only because {@link java.sql.ResultSet} requires that it exist.
+     */
+    @Deprecated
+    public InputStream getUnicodeStream(int columnIndex) throws SQLException {
+        return resultSet.getUnicodeStream(columnIndex);
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * This is provided only because {@link java.sql.ResultSet} requires that it exist.
+     */
+    @Deprecated
+    public InputStream getUnicodeStream(String columnLabel) throws SQLException {
+        return resultSet.getUnicodeStream(columnLabel);
     }
 }
