@@ -35,7 +35,7 @@ _Dependency coordinates for other build systems can be found [here](http://searc
 ## Query returns nothing
 ### What you need to know
 ```java
-public abstract class Connection {
+public abstract class SimpleConnection {
     public boolean execute(final String sql, final Object... arguments) throws SQLException;
 }
 ```
@@ -46,7 +46,7 @@ import java.sql.SQLException;
 
 public class Main {
     public static void main(String[] args) throws SQLException {
-        Connection connection = DB.getConnection("jdbc:hsqldb:mem:test", "sa", "");
+        SimpleConnection connection = DB.getConnection("jdbc:hsqldb:mem:test", "sa", "");
         connection.execute("create table users(\n" +
             "    id INTEGER not null,\n" +
             "    username char(25),\n" +
@@ -80,7 +80,7 @@ public class Main {
 ## Query returns a single row with a single column
 ### What you need to know
 ```java
-public abstract class Connection {
+public abstract class SimpleConnection {
     public String fetchString(final String sql, final Object ... args) throws SQLException;
     public Integer fetchInteger(final String sql, final Object ... args) throws SQLException;
     public Long fetchLong(final String sql, final Object ... args) throws SQLException;
@@ -100,7 +100,7 @@ import java.util.Date;
 
 public class Main {
     public static void main(String[] args) throws SQLException {
-        Connection connection = DB.getConnection("jdbc:hsqldb:mem:test", "sa", "");
+        SimpleConnection connection = DB.getConnection("jdbc:hsqldb:mem:test", "sa", "");
         connection.execute("create table users(\n" +
             "    id INTEGER not null,\n" +
             "    username char(25),\n" +
@@ -131,7 +131,7 @@ public class Main {
 ## Query returns a single row with multiple columns
 ### What you need to know
 ```java
-public abstract class Connection {
+public abstract class SimpleConnection {
     public <T> T fetchEntity(final T entity, final String sql, final Object ... arguments) throws SQLException;
     public <T> T fetchEntity(final Class<T> clazz, final String sql, final Object ... arguments) throws SQLException;
     public Map<String, Object> fetchMap(final String sql, final Object ... arguments) throws SQLException;
@@ -145,7 +145,7 @@ import java.util.Date;
 
 public class Main {
     public static void main(String[] args) throws SQLException {
-        Connection connection = DB.getConnection("jdbc:hsqldb:mem:test", "sa", "");
+        SimpleConnection connection = DB.getConnection("jdbc:hsqldb:mem:test", "sa", "");
         connection.execute("create table users(\n" +
             "    id INTEGER not null,\n" +
             "    username char(25),\n" +
@@ -256,7 +256,7 @@ public class Main {
 ## Query returns multiple rows with one or more columns
 ### What you need to know
 ```java
-public abstract class Connection {
+public abstract class SimpleConnection {
     public <T> List<T> fetchAllEntity(final Class<T> clazz, final String sql, final Object... arguments) throws SQLException;
     public List<Map<String, Object>> fetchAllMap(final String sql, final Object ... arguments) throws SQLException;
 }
@@ -270,7 +270,7 @@ import java.util.List;
 
 public class Main {
     public static void main(String[] args) throws SQLException {
-        Connection connection = DB.getConnection("jdbc:hsqldb:mem:test", "sa", "");
+        SimpleConnection connection = DB.getConnection("jdbc:hsqldb:mem:test", "sa", "");
         connection.execute("create table users(\n" +
             "    id INTEGER not null,\n" +
             "    username char(25),\n" +
