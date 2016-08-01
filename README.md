@@ -18,7 +18,7 @@ These are the core use cases which are handled by jdbc-simple.
 * Compatible with existing JDBC applications
 
 # Documentation
-* [Javadoc](https://cdn.rawgit.com/johndunlap/jdbc-simple/gh-pages/index.html)
+* [Javadoc](https://johndunlap.github.io/jdbc-simple/)
 
 # Examples
 For more working examples, look at the unit tests [here](https://github.com/johndunlap/jdbc-simple/tree/master/src/test/java/co/lariat/jdbc/test).
