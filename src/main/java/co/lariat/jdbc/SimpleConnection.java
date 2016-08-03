@@ -26,6 +26,7 @@ package co.lariat.jdbc;
  * #L%
  */
 
+
 import javax.persistence.Entity;
 import javax.sql.DataSource;
 import java.io.InputStream;
@@ -37,7 +38,6 @@ import java.math.BigDecimal;
 import java.net.URL;
 import java.sql.Connection;
 import java.sql.Ref;
-import java.sql.ResultSet;
 import java.sql.Array;
 import java.sql.Blob;
 import java.sql.CallableStatement;
@@ -149,6 +149,96 @@ public abstract class SimpleConnection implements Connection {
         return fetch(statement);
     }
 
+    public <T> T fetch(final ResultSetHandler<T> handler, final String sql, final Object ... arguments) throws SQLException {
+        PreparedStatement statement = prepareCall(sql);
+
+        T value = fetch(handler, statement, arguments);
+
+        // Close this here because a reference to it isn't returned
+        DB.closeStatement(statement);
+
+        return value;
+    }
+
+    public <T> T fetch(final ResultSetHandler<T> handler, final PreparedStatement statement, final Object ... arguments) throws SQLException {
+        SimpleResultSet resultSet = fetch(statement, arguments);
+
+        // Return null if there is no data
+        if (!resultSet.next()) {
+            return null;
+        }
+
+        T value = handler.handle(resultSet);
+
+        // Close this here because a reference to it isn't returned
+        DB.closeResultSet(resultSet);
+
+        return value;
+    }
+
+    public List<Integer> fetchListInteger(final String sql, final Object... arguments) throws SQLException {
+        PreparedStatement statement = prepareStatement(sql);
+        List<Integer> list = fetchListInteger(statement, arguments);
+
+        // Close this here because a reference to it isn't returned
+        DB.closeStatement(statement);
+
+        return list;
+    }
+
+    public List<Integer> fetchListInteger(final PreparedStatement statement, final Object... arguments) throws SQLException {
+        List<Integer> list = fetch(new ResultSetHandler<List<Integer>>() {
+            @Override
+            public List<Integer> handle(final SimpleResultSet simpleResultSet) throws SQLException {
+                List<Integer> integerList = new ArrayList<>();
+
+                do {
+                    integerList.add(simpleResultSet.getInt(1));
+                } while (simpleResultSet.next());
+
+                return integerList;
+            }
+        }, statement, arguments);
+
+
+        if (list == null) {
+            return new ArrayList<>();
+        }
+
+        return list;
+    }
+
+    public List<Long> fetchListLong(final String sql, final Object... arguments) throws SQLException {
+        PreparedStatement statement = prepareStatement(sql);
+        List<Long> list = fetchListLong(statement, arguments);
+
+        // Close this here because a reference to it isn't returned
+        DB.closeStatement(statement);
+
+        return list;
+    }
+
+    public List<Long> fetchListLong(final PreparedStatement statement, final Object... arguments) throws SQLException {
+        List<Long> list = fetch(new ResultSetHandler<List<Long>>() {
+            @Override
+            public List<Long> handle(final SimpleResultSet simpleResultSet) throws SQLException {
+                List<Long> integerList = new ArrayList<>();
+
+                do {
+                    integerList.add(simpleResultSet.getLong(1));
+                } while (simpleResultSet.next());
+
+                return integerList;
+            }
+        }, statement, arguments);
+
+        if (list == null) {
+            return new ArrayList<>();
+        }
+
+        return list;
+    }
+
     /**
      * Exceutes the procided statement
      * @param statement the statement which should be executed
@@ -213,8 +303,8 @@ public abstract class SimpleConnection implements Connection {
         List<T> entities = new ArrayList<>();
 
         // Iterate over the results
-        for (SimpleRecord simpleRecord : simpleResultSet) {
-            entities.add(fetchEntity(clazz, simpleRecord));
+        while (simpleResultSet.next()) {
+            entities.add(fetchEntity(clazz, simpleResultSet));
         }
 
         DB.closeResultSet(simpleResultSet); // Close this here because a reference to it isn't returned
@@ -239,8 +329,8 @@ public abstract class SimpleConnection implements Connection {
         Map<String, T> entities = new HashMap<>();
 
         // Iterate over the results
-        for (SimpleRecord simpleRecord : simpleResultSet) {
-            entities.put(simpleRecord.getStringByName(columnLabel), fetchEntity(clazz, simpleRecord));
+        while (simpleResultSet.next()) {
+            entities.put(simpleResultSet.getStringByName(columnLabel), fetchEntity(clazz, simpleResultSet));
         }
 
         DB.closeResultSet(simpleResultSet); // Close this here because a reference to it isn't returned
@@ -248,10 +338,10 @@ public abstract class SimpleConnection implements Connection {
         return entities;
     }
 
-    protected <T> T fetchEntity(final Class<T> clazz, final SimpleRecord simpleRecord) throws SQLException {
+    protected <T> T fetchEntity(final Class<T> clazz, final SimpleResultSet simpleResultSet) throws SQLException {
         try {
             T entity = clazz.newInstance();
-            return fetchEntity(entity, simpleRecord);
+            return fetchEntity(entity, simpleResultSet);
         } catch (InstantiationException e) {
             throw new SQLException("Cannot instantiate entity: " + clazz.getCanonicalName(), e);
         } catch (IllegalAccessException e) {
@@ -259,14 +349,14 @@ public abstract class SimpleConnection implements Connection {
         }
     }
 
-    protected <T> T fetchEntity(final T entity, final SimpleRecord simpleRecord) throws SQLException {
+    protected <T> T fetchEntity(final T entity, final SimpleResultSet simpleResultSet) throws SQLException {
         try {
-            int columnCount = simpleRecord.getColumnCount();
+            int columnCount = simpleResultSet.getColumnCount();
 
             for (int index = 1; index <= columnCount; index++) {
-                String columnName = toCamelCase(simpleRecord.getColumnName(index));
-                String columnClassName = simpleRecord.getColumnClassName(index);
-                Object value = simpleRecord.getValue(index);
+                String columnName = toCamelCase(simpleResultSet.getColumnName(index));
+                String columnClassName = simpleResultSet.getColumnClassName(index);
+                Object value = simpleResultSet.getValue(index);
 
                 // Attempt to find the appropriate setter method
                 SetterMethod setterMethod = findSetter(entity, columnName, columnClassName);
@@ -314,8 +404,8 @@ public abstract class SimpleConnection implements Connection {
         List<Map<String, Object>> entities = new ArrayList<>();
 
         // Iterate over the results
-        for (SimpleRecord simpleRecord : simpleResultSet) {
-            entities.add(fetchMap(simpleRecord));
+        while(simpleResultSet.next()) {
+            entities.add(fetchMap(simpleResultSet));
         }
 
         DB.closeResultSet(simpleResultSet); // Close this here because a reference to it isn't returned
@@ -341,13 +431,13 @@ public abstract class SimpleConnection implements Connection {
         int count = 0;
 
         // Iterate over the results
-        for (SimpleRecord simpleRecord : simpleResultSet) {
+        while(simpleResultSet.next()) {
             if (count > 0) {
                 throw new SQLException("Encountered a second record where a single record was expected");
             }
 
             // Populate the entity
-            fetchEntity(entity, simpleRecord);
+            fetchEntity(entity, simpleResultSet);
             count++;
         }
 
@@ -386,12 +476,12 @@ public abstract class SimpleConnection implements Connection {
         Map<String, Object> entity = null;
 
         // Iterate over the results
-        for (SimpleRecord simpleRecord : simpleResultSet) {
+        while (simpleResultSet.next()) {
             if (count > 0) {
                 throw new SQLException("Encountered a second record where a single record was expected");
             }
 
-            entity = fetchMap(simpleRecord);
+            entity = fetchMap(simpleResultSet);
             count++;
         }
 
@@ -400,30 +490,18 @@ public abstract class SimpleConnection implements Connection {
         return entity;
     }
 
-    protected Map<String, Object> fetchMap(final SimpleRecord simpleRecord) throws SQLException {
+    protected Map<String, Object> fetchMap(final SimpleResultSet simpleResultSet) throws SQLException {
         Map<String, Object> entity = new HashMap<>();
 
-        int columnCount = simpleRecord.getColumnCount();
+        int columnCount = simpleResultSet.getColumnCount();
 
         for (int index = 1; index <= columnCount; index++) {
-            String columnName = simpleRecord.getColumnName(index).toLowerCase();
-            Object value = simpleRecord.getValue(index);
+            String columnName = simpleResultSet.getColumnName(index).toLowerCase();
+            Object value = simpleResultSet.getValue(index);
             entity.put(columnName, value);
         }
 
         return entity;
-    }
-
-    protected ResultSet fetchRow(final PreparedStatement statement, final Object ... args) throws SQLException {
-        // Bind the arguments to the query
-        bindArguments(statement, args);
-
-        // Run the query
-        ResultSet resultSet = statement.executeQuery();
-        resultSet.next();
-
-        // Return the first column of the first row
-        return resultSet;
     }
 
     /**
@@ -434,15 +512,12 @@ public abstract class SimpleConnection implements Connection {
      * @throws SQLException thrown when something exceptional happens
      */
     public String fetchString(final String sql, final Object ... args) throws SQLException {
-        PreparedStatement statement = prepareStatement(sql);
-        ResultSet rs = fetchRow(statement, args);
-        String value = rs.getString(1);
-
-        // Close these here because you don't have a reference to them outside of this method
-        DB.closeResultSet(rs);
-        DB.closeStatement(statement);
-
-        return value;
+        return fetch(new ResultSetHandler<String>() {
+            @Override
+            public String handle(final SimpleResultSet simpleResultSet) throws SQLException {
+                return simpleResultSet.getString(1);
+            }
+        }, sql, args);
     }
 
     /**
@@ -453,15 +528,12 @@ public abstract class SimpleConnection implements Connection {
      * @throws SQLException thrown when something exceptional happens
      */
     public Integer fetchInt(final String sql, final Object ... args) throws SQLException {
-        PreparedStatement statement = prepareStatement(sql);
-        ResultSet rs = fetchRow(statement, args);
-        Integer value = rs.getInt(1);
-
-        // Close these here because you don't have a reference to them outside of this method
-        DB.closeResultSet(rs);
-        DB.closeStatement(statement);
-
-        return value;
+        return fetch(new ResultSetHandler<Integer>() {
+            @Override
+            public Integer handle(final SimpleResultSet simpleResultSet) throws SQLException {
+                return simpleResultSet.getInt(1);
+            }
+        }, sql, args);
     }
 
     /**
@@ -472,15 +544,12 @@ public abstract class SimpleConnection implements Connection {
      * @throws SQLException thrown when something exceptional happens
      */
     public Short fetchShort(final String sql, final Object ... args) throws SQLException {
-        PreparedStatement statement = prepareStatement(sql);
-        ResultSet rs = fetchRow(statement, args);
-        Short value = rs.getShort(1);
-
-        // Close these here because you don't have a reference to them outside of this method
-        DB.closeResultSet(rs);
-        DB.closeStatement(statement);
-
-        return value;
+        return fetch(new ResultSetHandler<Short>() {
+            @Override
+            public Short handle(final SimpleResultSet simpleResultSet) throws SQLException {
+                return simpleResultSet.getShort(1);
+            }
+        }, sql, args);
     }
 
     /**
@@ -491,15 +560,12 @@ public abstract class SimpleConnection implements Connection {
      * @throws SQLException thrown when something exceptional happens
      */
     public Byte fetchByte(final String sql, final Object ... args) throws SQLException {
-        PreparedStatement statement = prepareStatement(sql);
-        ResultSet rs = fetchRow(statement, args);
-        Byte value = rs.getByte(1);
-
-        // Close these here because you don't have a reference to them outside of this method
-        DB.closeResultSet(rs);
-        DB.closeStatement(statement);
-
-        return value;
+        return fetch(new ResultSetHandler<Byte>() {
+            @Override
+            public Byte handle(final SimpleResultSet simpleResultSet) throws SQLException {
+                return simpleResultSet.getByte(1);
+            }
+        }, sql, args);
     }
 
     /**
@@ -510,15 +576,12 @@ public abstract class SimpleConnection implements Connection {
      * @throws SQLException thrown when something exceptional happens
      */
     public Timestamp fetchTimestamp(final String sql, final Object ... args) throws SQLException {
-        PreparedStatement statement = prepareStatement(sql);
-        ResultSet rs = fetchRow(statement, args);
-        Timestamp value = rs.getTimestamp(1);
-
-        // Close these here because you don't have a reference to them outside of this method
-        DB.closeResultSet(rs);
-        DB.closeStatement(statement);
-
-        return value;
+        return fetch(new ResultSetHandler<Timestamp>() {
+            @Override
+            public Timestamp handle(final SimpleResultSet simpleResultSet) throws SQLException {
+                return simpleResultSet.getTimestamp(1);
+            }
+        }, sql, args);
     }
 
     /**
@@ -529,15 +592,12 @@ public abstract class SimpleConnection implements Connection {
      * @throws SQLException thrown when something exceptional happens
      */
     public Time fetchTime(final String sql, final Object ... args) throws SQLException {
-        PreparedStatement statement = prepareStatement(sql);
-        ResultSet rs = fetchRow(statement, args);
-        Time value = rs.getTime(1);
-
-        // Close these here because you don't have a reference to them outside of this method
-        DB.closeResultSet(rs);
-        DB.closeStatement(statement);
-
-        return value;
+        return fetch(new ResultSetHandler<Time>() {
+            @Override
+            public Time handle(final SimpleResultSet simpleResultSet) throws SQLException {
+                return simpleResultSet.getTime(1);
+            }
+        }, sql, args);
     }
 
     /**
@@ -548,15 +608,12 @@ public abstract class SimpleConnection implements Connection {
      * @throws SQLException thrown when something exceptional happens
      */
     public URL fetchURL(final String sql, final Object ... args) throws SQLException {
-        PreparedStatement statement = prepareStatement(sql);
-        ResultSet rs = fetchRow(statement, args);
-        URL value = rs.getURL(1);
-
-        // Close these here because you don't have a reference to them outside of this method
-        DB.closeResultSet(rs);
-        DB.closeStatement(statement);
-
-        return value;
+        return fetch(new ResultSetHandler<URL>() {
+            @Override
+            public URL handle(final SimpleResultSet simpleResultSet) throws SQLException {
+                return simpleResultSet.getURL(1);
+            }
+        }, sql, args);
     }
 
     /**
@@ -567,15 +624,12 @@ public abstract class SimpleConnection implements Connection {
      * @throws SQLException thrown when something exceptional happens
      */
     public Array fetchArray(final String sql, final Object ... args) throws SQLException {
-        PreparedStatement statement = prepareStatement(sql);
-        ResultSet rs = fetchRow(statement, args);
-        Array value = rs.getArray(1);
-
-        // Close these here because you don't have a reference to them outside of this method
-        DB.closeResultSet(rs);
-        DB.closeStatement(statement);
-
-        return value;
+        return fetch(new ResultSetHandler<Array>() {
+            @Override
+            public Array handle(final SimpleResultSet simpleResultSet) throws SQLException {
+                return simpleResultSet.getArray(1);
+            }
+        }, sql, args);
     }
 
     /**
@@ -586,15 +640,12 @@ public abstract class SimpleConnection implements Connection {
      * @throws SQLException thrown when something exceptional happens
      */
     public InputStream fetchAsciiStream(final String sql, final Object ... args) throws SQLException {
-        PreparedStatement statement = prepareStatement(sql);
-        ResultSet rs = fetchRow(statement, args);
-        InputStream value = rs.getAsciiStream(1);
-
-        // Close these here because you don't have a reference to them outside of this method
-        DB.closeResultSet(rs);
-        DB.closeStatement(statement);
-
-        return value;
+        return fetch(new ResultSetHandler<InputStream>() {
+            @Override
+            public InputStream handle(final SimpleResultSet simpleResultSet) throws SQLException {
+                return simpleResultSet.getAsciiStream(1);
+            }
+        }, sql, args);
     }
 
     /**
@@ -605,15 +656,12 @@ public abstract class SimpleConnection implements Connection {
      * @throws SQLException thrown when something exceptional happens
      */
     public InputStream fetchBinaryStream(final String sql, final Object ... args) throws SQLException {
-        PreparedStatement statement = prepareStatement(sql);
-        ResultSet rs = fetchRow(statement, args);
-        InputStream value = rs.getBinaryStream(1);
-
-        // Close these here because you don't have a reference to them outside of this method
-        DB.closeResultSet(rs);
-        DB.closeStatement(statement);
-
-        return value;
+        return fetch(new ResultSetHandler<InputStream>() {
+            @Override
+            public InputStream handle(final SimpleResultSet simpleResultSet) throws SQLException {
+                return simpleResultSet.getBinaryStream(1);
+            }
+        }, sql, args);
     }
 
     /**
@@ -624,15 +672,12 @@ public abstract class SimpleConnection implements Connection {
      * @throws SQLException thrown when something exceptional happens
      */
     public Blob fetchBlob(final String sql, final Object ... args) throws SQLException {
-        PreparedStatement statement = prepareStatement(sql);
-        ResultSet rs = fetchRow(statement, args);
-        Blob value = rs.getBlob(1);
-
-        // Close these here because you don't have a reference to them outside of this method
-        DB.closeResultSet(rs);
-        DB.closeStatement(statement);
-
-        return value;
+        return fetch(new ResultSetHandler<Blob>() {
+            @Override
+            public Blob handle(final SimpleResultSet simpleResultSet) throws SQLException {
+                return simpleResultSet.getBlob(1);
+            }
+        }, sql, args);
     }
 
     /**
@@ -643,15 +688,12 @@ public abstract class SimpleConnection implements Connection {
      * @throws SQLException thrown when something exceptional happens
      */
     public Reader fetchCharacterStream(final String sql, final Object ... args) throws SQLException {
-        PreparedStatement statement = prepareStatement(sql);
-        ResultSet rs = fetchRow(statement, args);
-        Reader value = rs.getCharacterStream(1);
-
-        // Close these here because you don't have a reference to them outside of this method
-        DB.closeResultSet(rs);
-        DB.closeStatement(statement);
-
-        return value;
+        return fetch(new ResultSetHandler<Reader>() {
+            @Override
+            public Reader handle(final SimpleResultSet simpleResultSet) throws SQLException {
+                return simpleResultSet.getCharacterStream(1);
+            }
+        }, sql, args);
     }
 
     /**
@@ -662,15 +704,12 @@ public abstract class SimpleConnection implements Connection {
      * @throws SQLException thrown when something exceptional happens
      */
     public Reader fetchNCharacterStream(final String sql, final Object ... args) throws SQLException {
-        PreparedStatement statement = prepareStatement(sql);
-        ResultSet rs = fetchRow(statement, args);
-        Reader value = rs.getNCharacterStream(1);
-
-        // Close these here because you don't have a reference to them outside of this method
-        DB.closeResultSet(rs);
-        DB.closeStatement(statement);
-
-        return value;
+        return fetch(new ResultSetHandler<Reader>() {
+            @Override
+            public Reader handle(final SimpleResultSet simpleResultSet) throws SQLException {
+                return simpleResultSet.getNCharacterStream(1);
+            }
+        }, sql, args);
     }
 
     /**
@@ -681,15 +720,12 @@ public abstract class SimpleConnection implements Connection {
      * @throws SQLException thrown when something exceptional happens
      */
     public Clob fetchClob(final String sql, final Object ... args) throws SQLException {
-        PreparedStatement statement = prepareStatement(sql);
-        ResultSet rs = fetchRow(statement, args);
-        Clob value = rs.getClob(1);
-
-        // Close these here because you don't have a reference to them outside of this method
-        DB.closeResultSet(rs);
-        DB.closeStatement(statement);
-
-        return value;
+        return fetch(new ResultSetHandler<Clob>() {
+            @Override
+            public Clob handle(final SimpleResultSet simpleResultSet) throws SQLException {
+                return simpleResultSet.getClob(1);
+            }
+        }, sql, args);
     }
 
     /**
@@ -700,15 +736,12 @@ public abstract class SimpleConnection implements Connection {
      * @throws SQLException thrown when something exceptional happens
      */
     public NClob fetchNClob(final String sql, final Object ... args) throws SQLException {
-        PreparedStatement statement = prepareStatement(sql);
-        ResultSet rs = fetchRow(statement, args);
-        NClob value = rs.getNClob(1);
-
-        // Close these here because you don't have a reference to them outside of this method
-        DB.closeResultSet(rs);
-        DB.closeStatement(statement);
-
-        return value;
+        return fetch(new ResultSetHandler<NClob>() {
+            @Override
+            public NClob handle(final SimpleResultSet simpleResultSet) throws SQLException {
+                return simpleResultSet.getNClob(1);
+            }
+        }, sql, args);
     }
 
     /**
@@ -719,15 +752,12 @@ public abstract class SimpleConnection implements Connection {
      * @throws SQLException thrown when something exceptional happens
      */
     public Ref fetchRef(final String sql, final Object ... args) throws SQLException {
-        PreparedStatement statement = prepareStatement(sql);
-        ResultSet rs = fetchRow(statement, args);
-        Ref value = rs.getRef(1);
-
-        // Close these here because you don't have a reference to them outside of this method
-        DB.closeResultSet(rs);
-        DB.closeStatement(statement);
-
-        return value;
+        return fetch(new ResultSetHandler<Ref>() {
+            @Override
+            public Ref handle(final SimpleResultSet simpleResultSet) throws SQLException {
+                return simpleResultSet.getRef(1);
+            }
+        }, sql, args);
     }
 
     /**
@@ -738,15 +768,12 @@ public abstract class SimpleConnection implements Connection {
      * @throws SQLException thrown when something exceptional happens
      */
     public String fetchNString(final String sql, final Object ... args) throws SQLException {
-        PreparedStatement statement = prepareStatement(sql);
-        ResultSet rs = fetchRow(statement, args);
-        String value = rs.getNString(1);
-
-        // Close these here because you don't have a reference to them outside of this method
-        DB.closeResultSet(rs);
-        DB.closeStatement(statement);
-
-        return value;
+        return fetch(new ResultSetHandler<String>() {
+            @Override
+            public String handle(final SimpleResultSet simpleResultSet) throws SQLException {
+                return simpleResultSet.getNString(1);
+            }
+        }, sql, args);
     }
 
     /**
@@ -757,15 +784,12 @@ public abstract class SimpleConnection implements Connection {
      * @throws SQLException thrown when something exceptional happens
      */
     public SQLXML fetchSQLXML(final String sql, final Object ... args) throws SQLException {
-        PreparedStatement statement = prepareStatement(sql);
-        ResultSet rs = fetchRow(statement, args);
-        SQLXML value = rs.getSQLXML(1);
-
-        // Close these here because you don't have a reference to them outside of this method
-        DB.closeResultSet(rs);
-        DB.closeStatement(statement);
-
-        return value;
+        return fetch(new ResultSetHandler<SQLXML>() {
+            @Override
+            public SQLXML handle(final SimpleResultSet simpleResultSet) throws SQLException {
+                return simpleResultSet.getSQLXML(1);
+            }
+        }, sql, args);
     }
 
     /**
@@ -776,15 +800,12 @@ public abstract class SimpleConnection implements Connection {
      * @throws SQLException thrown when something exceptional happens
      */
     public byte[] fetchBytes(final String sql, final Object ... args) throws SQLException {
-        PreparedStatement statement = prepareStatement(sql);
-        ResultSet rs = fetchRow(statement, args);
-        byte[] value = rs.getBytes(1);
-
-        // Close these here because you don't have a reference to them outside of this method
-        DB.closeResultSet(rs);
-        DB.closeStatement(statement);
-
-        return value;
+        return fetch(new ResultSetHandler<byte[]>() {
+            @Override
+            public byte[] handle(final SimpleResultSet simpleResultSet) throws SQLException {
+                return simpleResultSet.getBytes(1);
+            }
+        }, sql, args);
     }
 
     /**
@@ -795,15 +816,12 @@ public abstract class SimpleConnection implements Connection {
      * @throws SQLException thrown when something exceptional happens
      */
     public Long fetchLong(final String sql, final Object ... args) throws SQLException {
-        PreparedStatement statement = prepareStatement(sql);
-        ResultSet rs = fetchRow(statement, args);
-        Long value = rs.getLong(1);
-
-        // Close these here because you don't have a reference to them outside of this method
-        DB.closeResultSet(rs);
-        DB.closeStatement(statement);
-
-        return value;
+        return fetch(new ResultSetHandler<Long>() {
+            @Override
+            public Long handle(final SimpleResultSet simpleResultSet) throws SQLException {
+                return simpleResultSet.getLong(1);
+            }
+        }, sql, args);
     }
 
     /**
@@ -814,15 +832,12 @@ public abstract class SimpleConnection implements Connection {
      * @throws SQLException thrown when something exceptional happens
      */
     public Float fetchFloat(final String sql, final Object ... args) throws SQLException {
-        PreparedStatement statement = prepareStatement(sql);
-        ResultSet rs = fetchRow(statement, args);
-        Float value = rs.getFloat(1);
-
-        // Close these here because you don't have a reference to them outside of this method
-        DB.closeResultSet(rs);
-        DB.closeStatement(statement);
-
-        return value;
+        return fetch(new ResultSetHandler<Float>() {
+            @Override
+            public Float handle(final SimpleResultSet simpleResultSet) throws SQLException {
+                return simpleResultSet.getFloat(1);
+            }
+        }, sql, args);
     }
 
     /**
@@ -833,15 +848,12 @@ public abstract class SimpleConnection implements Connection {
      * @throws SQLException thrown when something exceptional happens
      */
     public Double fetchDouble(final String sql, final Object ... args) throws SQLException {
-        PreparedStatement statement = prepareStatement(sql);
-        ResultSet rs = fetchRow(statement, args);
-        Double value = rs.getDouble(1);
-
-        // Close these here because you don't have a reference to them outside of this method
-        DB.closeResultSet(rs);
-        DB.closeStatement(statement);
-
-        return value;
+        return fetch(new ResultSetHandler<Double>() {
+            @Override
+            public Double handle(final SimpleResultSet simpleResultSet) throws SQLException {
+                return simpleResultSet.getDouble(1);
+            }
+        }, sql, args);
     }
 
     /**
@@ -852,15 +864,12 @@ public abstract class SimpleConnection implements Connection {
      * @throws SQLException thrown when something exceptional happens
      */
     public BigDecimal fetchBigDecimal(final String sql, final Object ... args) throws SQLException {
-        PreparedStatement statement = prepareStatement(sql);
-        ResultSet rs = fetchRow(statement, args);
-        BigDecimal value = rs.getBigDecimal(1);
-
-        // Close these here because you don't have a reference to them outside of this method
-        DB.closeResultSet(rs);
-        DB.closeStatement(statement);
-
-        return value;
+        return fetch(new ResultSetHandler<BigDecimal>() {
+            @Override
+            public BigDecimal handle(final SimpleResultSet simpleResultSet) throws SQLException {
+                return simpleResultSet.getBigDecimal(1);
+            }
+        }, sql, args);
     }
 
     /**
@@ -871,15 +880,12 @@ public abstract class SimpleConnection implements Connection {
      * @throws SQLException thrown when something exceptional happens
      */
     public Date fetchDate(final String sql, final Object ... args) throws SQLException {
-        PreparedStatement statement = prepareStatement(sql);
-        ResultSet rs = fetchRow(statement, args);
-        Date value = rs.getDate(1);
-
-        // Close these here because you don't have a reference to them outside of this method
-        DB.closeResultSet(rs);
-        DB.closeStatement(statement);
-
-        return value;
+        return fetch(new ResultSetHandler<Date>() {
+            @Override
+            public Date handle(final SimpleResultSet simpleResultSet) throws SQLException {
+                return simpleResultSet.getDate(1);
+            }
+        }, sql, args);
     }
 
     /**
@@ -890,15 +896,12 @@ public abstract class SimpleConnection implements Connection {
      * @throws SQLException thrown when something exceptional happens
      */
     public Boolean fetchBoolean(final String sql, final Object ... args) throws SQLException {
-        PreparedStatement statement = prepareStatement(sql);
-        ResultSet rs = fetchRow(statement, args);
-        Boolean value = rs.getBoolean(1);
-
-        // Close these here because you don't have a reference to them outside of this method
-        DB.closeResultSet(rs);
-        DB.closeStatement(statement);
-
-        return value;
+        return fetch(new ResultSetHandler<Boolean>() {
+            @Override
+            public Boolean handle(final SimpleResultSet simpleResultSet) throws SQLException {
+                return simpleResultSet.getBoolean(1);
+            }
+        }, sql, args);
     }
 
     /**
@@ -910,15 +913,12 @@ public abstract class SimpleConnection implements Connection {
      * @throws SQLException thrown when something exceptional happens
      */
     public Object fetchObject(final String sql, final Object ... args) throws SQLException {
-        PreparedStatement statement = prepareStatement(sql);
-        ResultSet rs = fetchRow(statement, args);
-        Object value = rs.getObject(1);
-
-        // Close these here because you don't have a reference to them outside of this method
-        DB.closeResultSet(rs);
-        DB.closeStatement(statement);
-
-        return value;
+        return fetch(new ResultSetHandler<Object>() {
+            @Override
+            public Object handle(final SimpleResultSet simpleResultSet) throws SQLException {
+                return simpleResultSet.getObject(1);
+            }
+        }, sql, args);
     }
 
     /**
@@ -1355,7 +1355,7 @@ public abstract class SimpleConnection implements Connection {
             }
         }
 
-        Type[] parameterTypes = setterMethod.getGenericParameterTypes();
+        Type[] parameterTypes = setterMethod.getParameterTypes();
 
         if (parameterTypes.length != 1) {
             throw new SQLException("Setter methods should only accept a single parameter");
@@ -1363,14 +1363,20 @@ public abstract class SimpleConnection implements Connection {
 
         Type setterArgumentType = parameterTypes[0];
 
-        if (!setterArgumentType.getTypeName().equals(columnTypeName)) {
-            throw new SQLException("Setter argument type does not match the column type");
+        // TODO: This probably isn't very portable
+        String setterArgumentTypeName = setterArgumentType.toString().replaceAll("class ", "");
+
+        if (!setterArgumentTypeName.equals(columnTypeName)) {
+            throw new SQLException("Setter argument type("
+                + setterArgumentTypeName
+                + ") does not match the column type name("
+                + columnTypeName
+                + ")"
+            );
         }
 
-        SetterMethod foundSetter = new SetterMethod(setterMethod);
-
         // Return the setter
-        return foundSetter;
+        return new SetterMethod(setterMethod);
     }
 
     /**
@@ -1390,7 +1396,7 @@ public abstract class SimpleConnection implements Connection {
         }
 
         // Otherwise, check to see if the entity is annotated with it
-        return entityClass.getDeclaredAnnotation(Entity.class) != null;
+        return entityClass.isAnnotationPresent(Entity.class);
     }
 
     /**

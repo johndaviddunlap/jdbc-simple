@@ -29,6 +29,8 @@ package co.lariat.jdbc;
 import co.lariat.jdbc.generic.GenericSimpleConnection;
 
 import java.io.PrintStream;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -50,6 +52,13 @@ import static co.lariat.jdbc.Vendor.POSTGRESQL;
 public class DB {
     private static final Pattern JDBC_URL_PATTERN = Pattern.compile("^jdbc:([a-zA-Z0-9]+):.*$");
     private static PrintStream printStream = System.out;
+
+    public static String printStackTraceToString(final Throwable e) {
+        StringWriter sw = new StringWriter();
+        PrintWriter pw = new PrintWriter(sw);
+        e.printStackTrace(pw);
+        return sw.toString();
+    }
 
     public static PrintStream getPrintStream() {
         return printStream;

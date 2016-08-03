@@ -1,4 +1,4 @@
-package co.lariat.jdbc.generic;
+package co.lariat.jdbc;
 
 /*-
  * #%L
@@ -26,16 +26,12 @@ package co.lariat.jdbc.generic;
  * #L%
  */
 
-import co.lariat.jdbc.SimpleRecord;
-
-import java.sql.ResultSet;
+import java.sql.SQLException;
 
 /**
  * @author <a href="mailto:john@lariat.co">John D. Dunlap</a>
- * @since 9/26/15 4:08 PM - Created with IntelliJ IDEA.
+ * @since 8/3/16 2:43 PM - Created with IntelliJ IDEA.
  */
-public class GenericSimpleRecord extends SimpleRecord {
-    public GenericSimpleRecord(ResultSet resultSet) {
-        super(resultSet);
-    }
+public interface ResultSetHandler<T> {
+    public T handle(final SimpleResultSet simpleResultSet) throws SQLException;
 }

@@ -26,12 +26,9 @@ package co.lariat.jdbc.generic;
  * #L%
  */
 
-import co.lariat.jdbc.SimpleRecord;
 import co.lariat.jdbc.SimpleResultSet;
 
-import java.io.InputStream;
 import java.sql.ResultSet;
-import java.sql.SQLException;
 
 /**
  * @author <a href="mailto:john@lariat.co">John D. Dunlap</a>
@@ -40,10 +37,5 @@ import java.sql.SQLException;
 public class GenericSimpleResultSet extends SimpleResultSet {
     public GenericSimpleResultSet(ResultSet resultSet) {
         super(resultSet);
-    }
-
-    @Override
-    protected SimpleRecord createRecord() {
-        return new GenericSimpleRecord(this);
     }
 }

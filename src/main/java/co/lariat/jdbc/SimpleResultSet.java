@@ -53,17 +53,11 @@ import java.util.Map;
  * @author <a href="mailto:john@lariat.co">John D. Dunlap</a>
  * @since 9/14/15 3:27 PM - Created with IntelliJ IDEA.
  */
-public abstract class SimpleResultSet implements Iterable<SimpleRecord>, ResultSet {
+public abstract class SimpleResultSet implements ResultSet {
     private ResultSet resultSet;
 
     public SimpleResultSet(final ResultSet resultSet) {
         this.resultSet = resultSet;
-    }
-
-    protected abstract SimpleRecord createRecord();
-
-    public Iterator<SimpleRecord> iterator() {
-        return new ResultSetIterator(resultSet);
     }
 
     public <T> T unwrap(Class<T> iface) throws SQLException {
@@ -74,31 +68,31 @@ public abstract class SimpleResultSet implements Iterable<SimpleRecord>, ResultS
         return false;
     }
 
-    public class ResultSetIterator implements Iterator <SimpleRecord>{
-        private ResultSet resultSet;
+    public int getColumnCount() throws SQLException {
+        return resultSet.getMetaData().getColumnCount();
+    }
 
-        public ResultSetIterator(final ResultSet resultSet) {
-            this.resultSet = resultSet;
-        }
+    public String getColumnName(final int position) throws SQLException {
+        return resultSet.getMetaData().getColumnName(position);
+    }
 
-        public boolean hasNext() {
-            try {
-                return resultSet.next();
-            } catch (SQLException e) {
-                throw new RuntimeException("Caught SQLException: " + e.toString());
-            }
-        }
+    public String getColumnClassName(final int position) throws SQLException {
+        return resultSet.getMetaData().getColumnClassName(position);
+    }
 
-        public SimpleRecord next() {
-            return createRecord();
-        }
+    public Object getValue(final int position) throws SQLException {
+        return resultSet.getObject(position);
+    }
+
+    public String getStringByName(final String columnLabel) throws SQLException {
+        return resultSet.getString(columnLabel);
     }
 
     /**
      * {@inheritDoc}
      */
     public boolean next() throws SQLException {
-        return false;
+        return resultSet.next();
     }
 
     /**

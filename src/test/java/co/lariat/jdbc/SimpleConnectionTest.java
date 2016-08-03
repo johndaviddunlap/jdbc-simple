@@ -40,6 +40,8 @@ import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -47,14 +49,14 @@ import static org.junit.Assert.assertTrue;
  * @since 7/26/16 2:56 PM - Created with IntelliJ IDEA.
  */
 public class SimpleConnectionTest {
-    private static SimpleConnection simpleConnection;
+    private static SimpleConnection connection;
 
     @BeforeClass
     public static void beforeClass() throws SQLException {
-        simpleConnection = DB.getConnection("jdbc:hsqldb:mem:test", "sa", "");
+        connection = DB.getConnection("jdbc:hsqldb:mem:test", "sa", "");
 
         // Create a table
-        simpleConnection.execute("create table users(\n" +
+        connection.execute("create table users(\n" +
             "   id INTEGER not null,\n" +
             "   username char(25),\n" +
             "   password char(25),\n" +
@@ -66,7 +68,7 @@ public class SimpleConnectionTest {
         );
 
         // Add some data
-        simpleConnection.execute(
+        connection.execute(
             "insert into users(id, username, password, active, last_active, balance) values(?,?,?,?,?,?)",
             1,
             "admin",
@@ -75,7 +77,7 @@ public class SimpleConnectionTest {
             "1970-01-01 00:00:00",
             1345.23
         );
-        simpleConnection.execute(
+        connection.execute(
             "insert into users(id, username, password, active, last_active, balance) values(?,?,?,?,?,?)",
             2,
             "bob.wiley",
@@ -92,69 +94,69 @@ public class SimpleConnectionTest {
         String newPassword = "new34password";
 
         // Change the password
-        simpleConnection.execute("update users set password = ? where username = ?", newPassword, "admin");
-        assertEquals(newPassword, simpleConnection.fetchString("select password from users where username = ?", "admin"));
+        connection.execute("update users set password = ? where username = ?", newPassword, "admin");
+        assertEquals(newPassword, connection.fetchString("select password from users where username = ?", "admin"));
 
         // Change the password back
-        simpleConnection.execute("update users set password = ? where username = ?", oldPassword, "admin");
-        assertEquals(oldPassword, simpleConnection.fetchString("select password from users where username = ?", "admin"));
+        connection.execute("update users set password = ? where username = ?", oldPassword, "admin");
+        assertEquals(oldPassword, connection.fetchString("select password from users where username = ?", "admin"));
     }
 
     @Test
     public void testFetchStringMethod() throws SQLException {
-        String username = simpleConnection.fetchString("select username from users where id = ?", 1);
+        String username = connection.fetchString("select username from users where id = ?", 1);
         assertEquals(username, "admin");
     }
 
     @Test
     public void testFetchObjectMethod() throws SQLException {
-        Object object = simpleConnection.fetchObject("select username from users where id = ?", 1);
+        Object object = connection.fetchObject("select username from users where id = ?", 1);
         assertEquals(String.class, object.getClass());
 
-        object = simpleConnection.fetchObject("select id from users where username = ?", "admin");
+        object = connection.fetchObject("select id from users where username = ?", "admin");
         assertEquals(Integer.class, object.getClass());
     }
 
     @Test
     public void testFetchIntegerMethod() throws SQLException {
-        Integer id = simpleConnection.fetchInt("select id from users where username = ?", "admin");
+        Integer id = connection.fetchInt("select id from users where username = ?", "admin");
         assertEquals(id, new Integer(1));
     }
 
     @Test
     public void testFetchLongMethod() throws SQLException {
-        Long id = simpleConnection.fetchLong("select id from users where username = ?", "admin");
+        Long id = connection.fetchLong("select id from users where username = ?", "admin");
         assertEquals(id, new Long(1));
     }
 
     @Test
     public void testFetchBooleanMethod() throws SQLException {
-        Boolean active = simpleConnection.fetchBoolean("select active from users where username = ?", "admin");
+        Boolean active = connection.fetchBoolean("select active from users where username = ?", "admin");
         assertEquals(active, true);
     }
 
     @Test
     public void testFetchFloatMethod() throws SQLException {
-        Float balance = simpleConnection.fetchFloat("select balance from users where username = ?", "admin");
+        Float balance = connection.fetchFloat("select balance from users where username = ?", "admin");
         assertEquals(balance, new Float(1345.23));
     }
 
     @Test
     public void testFetchDoubleMethod() throws SQLException {
-        Double balance = simpleConnection.fetchDouble("select balance from users where username = ?", "admin");
+        Double balance = connection.fetchDouble("select balance from users where username = ?", "admin");
         assertEquals(balance, new Double(1345.23));
     }
 
     @Test
     public void testFetchBigDecimalMethod() throws SQLException {
-        BigDecimal balance = simpleConnection.fetchBigDecimal("select balance from users where username = ?", "admin");
+        BigDecimal balance = connection.fetchBigDecimal("select balance from users where username = ?", "admin");
         assertEquals(new Double(balance.doubleValue()), new Double(new BigDecimal(1345.23).doubleValue()));
     }
 
     @Test
     public void testFetchDateMethod() throws ParseException, SQLException {
         SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        Date lastActive = simpleConnection.fetchDate("select last_active from users where username = ?", "admin");
+        Date lastActive = connection.fetchDate("select last_active from users where username = ?", "admin");
         assertEquals(lastActive, formatter.parse("1970-01-01 00:00:00"));
     }
 
@@ -162,7 +164,7 @@ public class SimpleConnectionTest {
     public void testFetchEntityMethod() throws ParseException, SQLException {
         SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
-        User user = simpleConnection.fetchEntity(
+        User user = connection.fetchEntity(
             User.class,
             "select id, username, password, active, last_active, balance from users where id = ?",
             1
@@ -176,7 +178,7 @@ public class SimpleConnectionTest {
         assertEquals(new Double(user.getBalance().doubleValue()), new Double(new BigDecimal(1345.23).doubleValue()));
 
         // Now attempt to override a value in the entity
-        simpleConnection.fetchEntity(
+        connection.fetchEntity(
             user,
             "select password from users where id = ?",
             2
@@ -196,10 +198,12 @@ public class SimpleConnectionTest {
     public void testFetchMapMethod() throws ParseException, SQLException {
         SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
-        Map<String, Object> user = simpleConnection.fetchMap(
+        Map<String, Object> user = connection.fetchMap(
             "select id, username, password, active, last_active, balance from users where id = ?",
             1
         );
+
+        assertNotNull(user);
 
         assertEquals(new Long((Integer) user.get("id")), new Long(1));
         assertEquals((String) user.get("username"), "admin");
@@ -210,10 +214,62 @@ public class SimpleConnectionTest {
     }
 
     @Test
+    public void testFetchListIntegerMethod() throws SQLException {
+        List<Integer> list = connection.fetchListInteger(
+            "select id from users order by id asc"
+        );
+
+        assertEquals(2, list.size());
+        assertEquals(new Integer(1), list.get(0));
+        assertEquals(new Integer(2), list.get(1));
+    }
+
+    @Test
+    public void testFetchLongMethodWithQueryWhichReturnsNothing() throws SQLException {
+        Long l = connection.fetchLong(
+            "select id from users where username = ?",
+            "999999"
+        );
+
+        assertNull(l);
+    }
+
+    @Test
+    public void testFetchListLongMethod() throws SQLException {
+        List<Long> list = connection.fetchListLong(
+            "select id from users order by id asc"
+        );
+
+        assertEquals(2, list.size());
+        assertEquals(new Long(1), list.get(0));
+        assertEquals(new Long(2), list.get(1));
+    }
+
+    @Test
+    public void testFetchListLongMethodWithQueryWhichReturnsNothing() throws SQLException {
+        List<Long> list = connection.fetchListLong(
+            "select id from users where id < 0 order by id asc"
+        );
+
+        assertNotNull(list);
+        assertEquals(0, list.size());
+    }
+
+    @Test
+    public void testFetchListIntegerMethodWithQueryWhichReturnsNothing() throws SQLException {
+        List<Integer> list = connection.fetchListInteger(
+            "select id from users where id < 0 order by id asc"
+        );
+
+        assertNotNull(list);
+        assertEquals(0, list.size());
+    }
+
+    @Test
     public void testFetchAllMapMethod() throws ParseException, SQLException {
         SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
-        List<Map<String, Object>> users = simpleConnection.fetchAllMap(
+        List<Map<String, Object>> users = connection.fetchAllMap(
             "select id, username, password, active, last_active, balance from users order by id asc"
         );
 
@@ -240,7 +296,7 @@ public class SimpleConnectionTest {
     public void testFetchAllEntityMethod() throws ParseException, SQLException {
         SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
-        List<User> users = simpleConnection.fetchAllEntity(
+        List<User> users = connection.fetchAllEntity(
             User.class,
             "select id, username, password, active, last_active, balance from users order by id asc"
         );
@@ -268,7 +324,7 @@ public class SimpleConnectionTest {
     public void testFetchAllEntityMap() throws ParseException, SQLException {
         SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
-        Map<String, User> users = simpleConnection.fetchAllEntityMap(
+        Map<String, User> users = connection.fetchAllEntityMap(
             User.class,
             "username",
             "select id, username, password, active, last_active, balance from users order by id asc"
@@ -295,25 +351,25 @@ public class SimpleConnectionTest {
 
     @Test
     public void testToCamelCaseMethod() throws SQLException {
-        assertEquals("myColumnName", simpleConnection.toCamelCase("my_column_name"));
-        assertEquals("thisIsATest", simpleConnection.toCamelCase("this_is_a_test"));
-        assertEquals("test", simpleConnection.toCamelCase("test"));
-        assertEquals("test", simpleConnection.toCamelCase("tEst"));
+        assertEquals("myColumnName", connection.toCamelCase("my_column_name"));
+        assertEquals("thisIsATest", connection.toCamelCase("this_is_a_test"));
+        assertEquals("test", connection.toCamelCase("test"));
+        assertEquals("test", connection.toCamelCase("tEst"));
 
         // Some databases are case insensitive so we can't rely on the case
         // of the column name
-        assertEquals("myColumnName", simpleConnection.toCamelCase("MY_COLUMN_NAME"));
-        assertEquals("myColumnName", simpleConnection.toCamelCase("My_CoLuMn_NaMe"));
-        assertEquals("thisIsATest", simpleConnection.toCamelCase("THIS_IS_A_TEST"));
+        assertEquals("myColumnName", connection.toCamelCase("MY_COLUMN_NAME"));
+        assertEquals("myColumnName", connection.toCamelCase("My_CoLuMn_NaMe"));
+        assertEquals("thisIsATest", connection.toCamelCase("THIS_IS_A_TEST"));
     }
 
     @Test
     public void testIsJpaEntityMethod() {
-        assertTrue(simpleConnection.isJpaEntity(User.class));
-        assertFalse(simpleConnection.isJpaEntity(getClass()));
+        assertTrue(connection.isJpaEntity(User.class));
+        assertFalse(connection.isJpaEntity(getClass()));
 
         User user = new User();
-        assertTrue(simpleConnection.isJpaEntity(user));
-        assertFalse(simpleConnection.isJpaEntity(this));
+        assertTrue(connection.isJpaEntity(user));
+        assertFalse(connection.isJpaEntity(this));
     }
 }
