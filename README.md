@@ -12,7 +12,6 @@ These are the core use cases which are handled by jdbc-simple.
 
 # Features
 * Small and very lightweight
-* No transitive dependencies will be added to your project
 * Query methods which eliminate JDBC boiler plate without getting in your way
 * Query results are injected into java objects
 * Compatible with existing JDBC applications
