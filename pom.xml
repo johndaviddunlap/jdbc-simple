@@ -28,7 +28,19 @@
         <url>https://github.com/johndunlap/jdbc-simple</url>
     </scm>
 
+    <properties>
+        <slf4jVersion>1.7.21</slf4jVersion>
+    </properties>
+
     <dependencies>
+        <!-- Required dependencies -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>${slf4jVersion}</version>
+        </dependency>
+
+        <!-- Optional dependencies -->
         <dependency>
             <groupId>javax.persistence</groupId>
             <artifactId>persistence-api</artifactId>
@@ -48,6 +60,12 @@
             <groupId>hsqldb</groupId>
             <artifactId>hsqldb</artifactId>
             <version>1.8.0.10</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-simple</artifactId>
+            <version>${slf4jVersion}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

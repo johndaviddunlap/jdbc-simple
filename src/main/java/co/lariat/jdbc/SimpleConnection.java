@@ -200,7 +200,8 @@ public abstract class SimpleConnection implements Connection {
             }
         }, statement, arguments);
 
-
+        // We need to return an empty list, in this case, because we want to be able to use the return value of this
+        // method in a for each loop even if there are no rows in the result set
         if (list == null) {
             return new ArrayList<>();
         }
@@ -232,6 +233,8 @@ public abstract class SimpleConnection implements Connection {
             }
         }, statement, arguments);
 
+        // We need to return an empty list, in this case, because we want to be able to use the return value of this
+        // method in a for each loop even if there are no rows in the result set
         if (list == null) {
             return new ArrayList<>();
         }

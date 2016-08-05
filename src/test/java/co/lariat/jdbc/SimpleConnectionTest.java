@@ -48,46 +48,7 @@ import static org.junit.Assert.assertTrue;
  * @author <a href="mailto:john@lariat.co">John D. Dunlap</a>
  * @since 7/26/16 2:56 PM - Created with IntelliJ IDEA.
  */
-public class SimpleConnectionTest {
-    private static SimpleConnection connection;
-
-    @BeforeClass
-    public static void beforeClass() throws SQLException {
-        connection = DB.getConnection("jdbc:hsqldb:mem:test", "sa", "");
-
-        // Create a table
-        connection.execute("create table users(\n" +
-            "   id INTEGER not null,\n" +
-            "   username char(25),\n" +
-            "   password char(25),\n" +
-            "   active BOOLEAN,\n" +
-            "   last_active TIMESTAMP,\n" +
-            "   balance NUMERIC(10, 2),\n" +
-            "   PRIMARY KEY (id)\n" +
-            ");"
-        );
-
-        // Add some data
-        connection.execute(
-            "insert into users(id, username, password, active, last_active, balance) values(?,?,?,?,?,?)",
-            1,
-            "admin",
-            "password",
-            true,
-            "1970-01-01 00:00:00",
-            1345.23
-        );
-        connection.execute(
-            "insert into users(id, username, password, active, last_active, balance) values(?,?,?,?,?,?)",
-            2,
-            "bob.wiley",
-            "password2",
-            true,
-            "1973-02-02 00:00:00",
-            564.77
-        );
-    }
-
+public class SimpleConnectionTest extends AbstractUnitTest{
     @Test
     public void testExecuteMethod() throws SQLException {
         String oldPassword = "password";
