@@ -84,6 +84,8 @@ public abstract class AbstractJdbcDao {
      * @throws SQLException throw when something exceptional happens
      */
     public AbstractJdbcDao begin() throws SQLException {
+        logger.debug("BEGIN");
+
         // Throw an error if we attempt to being a transaction without committing or
         // rolling back the previous transaction
         if (transactionActive) {
@@ -102,6 +104,8 @@ public abstract class AbstractJdbcDao {
     }
 
     public AbstractJdbcDao commit() throws SQLException {
+        logger.debug("COMMIT");
+
         // Throw an error if we attempt to commit back a transaction without calling begin first
         if (!transactionActive) {
             throw new SQLException("Attempted to roll back a transaction when no transaction was active.");
@@ -119,6 +123,8 @@ public abstract class AbstractJdbcDao {
     }
 
     public AbstractJdbcDao rollback() throws SQLException {
+        logger.debug("ROLLBACK");
+
         // Throw an error if we attempt to roll back a transaction without calling begin first
         if (!transactionActive) {
             throw new SQLException("Attempted to roll back a transaction when no transaction was active.");
